@@ -1,11 +1,22 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { useCompletion } from "ai/react";
 import { toast } from "sonner";
 import { usePresentationState } from "@/states/presentation-state";
-import { SlideParser } from "../utils/parser";
+import { SlideParser, type PlateSlide } from "../utils/parser";
 import { updatePresentation } from "@/app/_actions/presentation/presentationActions";
+
+// Feature flag: Set to true to use parallel generation (faster)
+const USE_PARALLEL_GENERATION = false;
+
+interface StreamEvent {
+  type: "start" | "slide" | "done" | "error";
+  total?: number;
+  index?: number;
+  content?: string;
+  message?: string;
+}
 
 export function PresentationGenerationManager() {
   const {
@@ -31,41 +42,180 @@ export function PresentationGenerationManager() {
   const outlineRafIdRef = useRef<number | null>(null);
 
   // Create buffer refs to store the latest content
-  // Note: The types should match what setOutline and setSlides expect
   const slidesBufferRef = useRef<ReturnType<
     SlideParser["getAllSlides"]
   > | null>(null);
   const outlineBufferRef = useRef<string[] | null>(null);
 
+  // Refs for parallel generation
+  const slidesMapRef = useRef<Map<number, PlateSlide>>(new Map());
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   // Function to update slides using requestAnimationFrame
   const updateSlidesWithRAF = (): void => {
-    // Always check for the latest slides in the buffer
     if (slidesBufferRef.current !== null) {
       setSlides(slidesBufferRef.current);
       slidesBufferRef.current = null;
     }
-
-    // Clear the current frame ID
     slidesRafIdRef.current = null;
-
-    // We don't recursively schedule new frames
-    // New frames will be scheduled only when new content arrives
   };
 
   // Function to update outline using requestAnimationFrame
   const updateOutlineWithRAF = (): void => {
-    // Always check for the latest outline in the buffer
     if (outlineBufferRef.current !== null) {
       setOutline(outlineBufferRef.current);
       outlineBufferRef.current = null;
     }
-
-    // Clear the current frame ID
     outlineRafIdRef.current = null;
-
-    // We don't recursively schedule new frames
-    // New frames will be scheduled only when new content arrives
   };
+
+  // Parallel generation function
+  const generatePresentationParallel = useCallback(async () => {
+    const {
+      outline,
+      presentationInput,
+      language,
+      presentationStyle,
+      currentPresentationTitle,
+      currentPresentationId,
+      theme,
+    } = usePresentationState.getState();
+
+    if (!outline.length) {
+      toast.error("No outline to generate from");
+      resetGeneration();
+      return;
+    }
+
+    // Reset state
+    streamingParserRef.current.reset();
+    slidesMapRef.current.clear();
+    setSlides([]);
+    setIsGeneratingPresentation(true);
+
+    // Create abort controller for cancellation
+    abortControllerRef.current = new AbortController();
+
+    try {
+      const response = await fetch("/api/presentation/generate-stream", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: presentationInput ?? currentPresentationTitle ?? "",
+          outline,
+          language,
+          tone: presentationStyle,
+        }),
+        signal: abortControllerRef.current.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error("No response body");
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        // Process complete events from buffer
+        const lines = buffer.split("\n\n");
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+
+          try {
+            const event: StreamEvent = JSON.parse(line.slice(6)) as StreamEvent;
+
+            switch (event.type) {
+              case "slide":
+                if (event.index !== undefined && event.content) {
+                  // Parse the single slide
+                  const tempParser = new SlideParser();
+                  tempParser.parseChunk(
+                    `<PRESENTATION>${event.content}</PRESENTATION>`
+                  );
+                  tempParser.finalize();
+                  const parsedSlides = tempParser.getAllSlides();
+
+                  if (parsedSlides[0]) {
+                    slidesMapRef.current.set(event.index, parsedSlides[0]);
+
+                    // Convert map to sorted array and update state
+                    const slidesArray = Array.from(slidesMapRef.current.entries())
+                      .sort(([a], [b]) => a - b)
+                      .map(([, slide]) => slide);
+
+                    slidesBufferRef.current = slidesArray;
+                    if (slidesRafIdRef.current === null) {
+                      slidesRafIdRef.current = requestAnimationFrame(updateSlidesWithRAF);
+                    }
+                  }
+                }
+                break;
+
+              case "done":
+                // Final update and save
+                const finalSlides = Array.from(slidesMapRef.current.entries())
+                  .sort(([a], [b]) => a - b)
+                  .map(([, slide]) => slide);
+
+                slidesBufferRef.current = finalSlides;
+                requestAnimationFrame(updateSlidesWithRAF);
+
+                if (currentPresentationId && finalSlides.length > 0) {
+                  void updatePresentation({
+                    id: currentPresentationId,
+                    content: { slides: finalSlides },
+                    title: currentPresentationTitle ?? "",
+                    theme,
+                  });
+                }
+
+                toast.success(
+                  `Generated ${finalSlides.length} slides successfully!`
+                );
+                break;
+
+              case "error":
+                if (event.index !== undefined) {
+                  console.warn(`Slide ${event.index} failed to generate`);
+                } else {
+                  throw new Error(event.message ?? "Generation failed");
+                }
+                break;
+            }
+          } catch (parseError) {
+            console.error("Error parsing stream event:", parseError);
+          }
+        }
+      }
+    } catch (error) {
+      if ((error as Error).name === "AbortError") {
+        toast.info("Generation cancelled");
+      } else {
+        console.error("Generation error:", error);
+        toast.error(
+          `Failed to generate presentation: ${(error as Error).message}`
+        );
+      }
+      resetGeneration();
+    } finally {
+      setIsGeneratingPresentation(false);
+      setShouldStartPresentationGeneration(false);
+      abortControllerRef.current = null;
+    }
+  }, [resetGeneration, setIsGeneratingPresentation, setSlides, setShouldStartPresentationGeneration]);
 
   // Outline generation
   const { completion: outlineCompletion, complete: generateOutline } =
@@ -97,7 +247,6 @@ export function PresentationGenerationManager() {
           });
         }
 
-        // Cancel any pending outline animation frame
         if (outlineRafIdRef.current !== null) {
           cancelAnimationFrame(outlineRafIdRef.current);
           outlineRafIdRef.current = null;
@@ -107,7 +256,6 @@ export function PresentationGenerationManager() {
         toast.error("Failed to generate outline: " + error.message);
         resetGeneration();
 
-        // Cancel any pending outline animation frame
         if (outlineRafIdRef.current !== null) {
           cancelAnimationFrame(outlineRafIdRef.current);
           outlineRafIdRef.current = null;
@@ -117,17 +265,14 @@ export function PresentationGenerationManager() {
 
   useEffect(() => {
     if (outlineCompletion && typeof outlineCompletion === "string") {
-      // Parse the outline into sections
       const sections = outlineCompletion.split(/^# /gm).filter(Boolean);
       const outlineItems: string[] =
         sections.length > 0
           ? sections.map((section) => `# ${section}`.trim())
           : [outlineCompletion];
 
-      // Store the latest outline in the buffer
       outlineBufferRef.current = outlineItems;
 
-      // Only schedule a new frame if one isn't already pending
       if (outlineRafIdRef.current === null) {
         outlineRafIdRef.current = requestAnimationFrame(updateOutlineWithRAF);
       }
@@ -143,7 +288,6 @@ export function PresentationGenerationManager() {
         try {
           setIsGeneratingOutline(true);
 
-          // Start the RAF cycle for outline updates
           if (outlineRafIdRef.current === null) {
             outlineRafIdRef.current =
               requestAnimationFrame(updateOutlineWithRAF);
@@ -158,7 +302,6 @@ export function PresentationGenerationManager() {
           });
         } catch (error) {
           console.log(error);
-          // Error is handled by onError callback
         } finally {
           setIsGeneratingOutline(false);
           setShouldStartOutlineGeneration(false);
@@ -169,7 +312,8 @@ export function PresentationGenerationManager() {
     void startOutlineGeneration();
   }, [shouldStartOutlineGeneration]);
 
-  const { completion: presentationCompletion, complete: generatePresentation } =
+  // Sequential generation (original approach)
+  const { completion: presentationCompletion, complete: generatePresentationSequential } =
     useCompletion({
       api: "/api/presentation/generate",
       onFinish: (_prompt, _completion) => {
@@ -196,7 +340,6 @@ export function PresentationGenerationManager() {
 
         setIsGeneratingPresentation(false);
         setShouldStartPresentationGeneration(false);
-        // Cancel any pending animation frame
         if (slidesRafIdRef.current !== null) {
           cancelAnimationFrame(slidesRafIdRef.current);
           slidesRafIdRef.current = null;
@@ -207,7 +350,6 @@ export function PresentationGenerationManager() {
         resetGeneration();
         streamingParserRef.current.reset();
 
-        // Cancel any pending animation frame
         if (slidesRafIdRef.current !== null) {
           cancelAnimationFrame(slidesRafIdRef.current);
           slidesRafIdRef.current = null;
@@ -216,17 +358,15 @@ export function PresentationGenerationManager() {
     });
 
   useEffect(() => {
-    if (presentationCompletion) {
+    if (!USE_PARALLEL_GENERATION && presentationCompletion) {
       try {
         streamingParserRef.current.reset();
         streamingParserRef.current.parseChunk(presentationCompletion);
         streamingParserRef.current.finalize();
         const allSlides = streamingParserRef.current.getAllSlides();
 
-        // Store the latest slides in the buffer
         slidesBufferRef.current = allSlides;
 
-        // Only schedule a new frame if one isn't already pending
         if (slidesRafIdRef.current === null) {
           slidesRafIdRef.current = requestAnimationFrame(updateSlidesWithRAF);
         }
@@ -237,38 +377,42 @@ export function PresentationGenerationManager() {
     }
   }, [presentationCompletion]);
 
+  // Watch for presentation generation start
   useEffect(() => {
     if (shouldStartPresentationGeneration) {
-      const {
-        outline,
-        presentationInput,
-        language,
-        presentationStyle,
-        currentPresentationTitle,
-      } = usePresentationState.getState();
-
-      // Reset the parser before starting a new generation
-      streamingParserRef.current.reset();
-
-      setIsGeneratingPresentation(true);
-
-      // Start the RAF cycle for slide updates
-      if (slidesRafIdRef.current === null) {
-        slidesRafIdRef.current = requestAnimationFrame(updateSlidesWithRAF);
-      }
-
-      void generatePresentation(presentationInput ?? "", {
-        body: {
-          title: presentationInput ?? currentPresentationTitle ?? "",
+      if (USE_PARALLEL_GENERATION) {
+        // Use parallel generation (faster)
+        void generatePresentationParallel();
+      } else {
+        // Use sequential generation (original)
+        const {
           outline,
+          presentationInput,
           language,
-          tone: presentationStyle,
-        },
-      });
-    }
-  }, [shouldStartPresentationGeneration]);
+          presentationStyle,
+          currentPresentationTitle,
+        } = usePresentationState.getState();
 
-  // Clean up RAF on unmount
+        streamingParserRef.current.reset();
+        setIsGeneratingPresentation(true);
+
+        if (slidesRafIdRef.current === null) {
+          slidesRafIdRef.current = requestAnimationFrame(updateSlidesWithRAF);
+        }
+
+        void generatePresentationSequential(presentationInput ?? "", {
+          body: {
+            title: presentationInput ?? currentPresentationTitle ?? "",
+            outline,
+            language,
+            tone: presentationStyle,
+          },
+        });
+      }
+    }
+  }, [shouldStartPresentationGeneration, generatePresentationParallel]);
+
+  // Clean up RAF and abort controller on unmount
   useEffect(() => {
     return () => {
       if (slidesRafIdRef.current !== null) {
@@ -280,8 +424,14 @@ export function PresentationGenerationManager() {
         cancelAnimationFrame(outlineRafIdRef.current);
         outlineRafIdRef.current = null;
       }
+
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
     };
   }, []);
 
   return null;
 }
+

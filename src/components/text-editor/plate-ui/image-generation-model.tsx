@@ -28,6 +28,10 @@ import {
 } from "@/components/ui/select";
 const MODEL_OPTIONS = [
   {
+    label: "Pollinations (Free)",
+    value: "pollinations",
+  },
+  {
     label: "Flux.1 [schnell] (free)",
     value: "black-forest-labs/FLUX.1-schnell-Free",
   },
@@ -57,7 +61,7 @@ export function GenerateImageDialogContent({
   const editor = useEditorRef();
   const [prompt, setPrompt] = useState("");
   const [selectedModel, setSelectedModel] = useState<ImageModelList>(
-    "black-forest-labs/FLUX.1-schnell-Free"
+    "pollinations"
   );
 
   const generateImage = async () => {

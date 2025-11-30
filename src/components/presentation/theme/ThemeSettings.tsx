@@ -15,12 +15,10 @@ import { ThemeModal } from "./ThemeModal";
 import { Button } from "@/components/ui/button";
 
 export const IMAGE_MODELS: { value: ImageModelList; label: string }[] = [
+  { value: "pollinations", label: "Pollinations (Free)" },
+  { value: "black-forest-labs/FLUX.1-schnell-Free", label: "FLUX.1 [schnell] Free" },
   { value: "black-forest-labs/FLUX1.1-pro", label: "FLUX 1.1 [pro]" },
   { value: "black-forest-labs/FLUX.1-schnell", label: "FLUX.1 [schnell]" },
-  {
-    value: "black-forest-labs/FLUX.1-schnell-Free",
-    label: "FLUX.1 [schnell] Free",
-  },
   { value: "black-forest-labs/FLUX.1-pro", label: "FLUX.1 [pro]" },
   { value: "black-forest-labs/FLUX.1-dev", label: "FLUX.1 [dev]" },
 ];
