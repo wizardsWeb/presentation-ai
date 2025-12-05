@@ -5,6 +5,9 @@ import { PromptTemplate } from "@langchain/core/prompts";
 import { RunnableSequence } from "@langchain/core/runnables";
 import { StringOutputParser } from "@langchain/core/output_parsers";
 
+// Enable Edge Runtime for lower latency
+export const runtime = "edge";
+
 interface SlidesRequest {
   title: string;
   outline: string[];
@@ -12,37 +15,30 @@ interface SlidesRequest {
   tone: string;
 }
 
-// Optimized single-slide prompt - more concise for faster generation
-const singleSlideTemplate = `Create ONE presentation slide in XML format.
+// Ultra-compact prompt for maximum speed
+const singleSlideTemplate = `Create 1 slide as XML. Topic: {SLIDE_TOPIC}. Language: {LANGUAGE}. Tone: {TONE}.
 
-SLIDE INFO:
-- Title: {TITLE}
-- Topic: {SLIDE_TOPIC}  
-- Slide {SLIDE_NUMBER}/{TOTAL_SLIDES}
-- Language: {LANGUAGE}
-- Tone: {TONE}
+Format: <SECTION layout="{SUGGESTED_LAYOUT}">content</SECTION>
 
-OUTPUT: Single <SECTION layout="{SUGGESTED_LAYOUT}"> with ONE component.
+Use ONE component:
+- BULLETS: <BULLETS><DIV><H3>title</H3><P>text</P></DIV></BULLETS>
+- ICONS: <ICONS><DIV><ICON query="word"/><H3>title</H3><P>text</P></DIV></ICONS>
+- CYCLE: <CYCLE><DIV><H3>step</H3><P>text</P></DIV></CYCLE>
+- ARROWS: <ARROWS><DIV><H3>from</H3><P>text</P></DIV><DIV><H3>to</H3><P>text</P></DIV></ARROWS>
+- TIMELINE: <TIMELINE><DIV><H3>date</H3><P>event</P></DIV></TIMELINE>
+- PYRAMID: <PYRAMID><DIV><H3>level</H3><P>text</P></DIV></PYRAMID>
+- COLUMNS: <COLUMNS><DIV><H3>a</H3><P>text</P></DIV><DIV><H3>b</H3><P>text</P></DIV></COLUMNS>
 
-COMPONENTS (pick one):
-BULLETS: <BULLETS><DIV><H3>Point</H3><P>Desc</P></DIV>...</BULLETS>
-ICONS: <ICONS><DIV><ICON query="word"/><H3>Title</H3><P>Desc</P></DIV>...</ICONS>
-CYCLE: <CYCLE><DIV><H3>Step</H3><P>Desc</P></DIV>...</CYCLE>
-ARROWS: <ARROWS><DIV><H3>From</H3><P>Desc</P></DIV><DIV><H3>To</H3><P>Desc</P></DIV></ARROWS>
-TIMELINE: <TIMELINE><DIV><H3>Date</H3><P>Event</P></DIV>...</TIMELINE>
-PYRAMID: <PYRAMID><DIV><H3>Top</H3><P>Desc</P></DIV>...</PYRAMID>
-COLUMNS: <COLUMNS><DIV><H3>A</H3><P>Desc</P></DIV><DIV><H3>B</H3><P>Desc</P></DIV></COLUMNS>
+Add image: <IMG query="descriptive image prompt"/>
 
-ADD IMAGE: <IMG query="detailed 10+ word description of visual"/>
+Output ONLY the <SECTION> tag:`;
 
-RULES: Expand on topic (don't copy), include image, be concise.
-
-Generate ONLY the <SECTION> tag:`;
-
+// Optimized model settings for speed - streaming enabled for faster first token
 const model = new ChatOpenAI({
   modelName: "gpt-4o-mini",
-  temperature: 0.7,
-  streaming: false,
+  temperature: 0.5,
+  maxTokens: 600, // Reduced for speed
+  streaming: true, // Enable streaming for faster first token
 });
 
 const layouts = ["left", "right", "vertical"] as const;
@@ -58,10 +54,8 @@ interface SlideResult {
 }
 
 async function generateSlide(
-  title: string,
   topic: string,
   index: number,
-  total: number,
   language: string,
   tone: string
 ): Promise<SlideResult> {
@@ -73,19 +67,21 @@ async function generateSlide(
       new StringOutputParser(),
     ]);
 
-    const result = await chain.invoke({
-      TITLE: title,
-      SLIDE_NUMBER: index + 1,
-      TOTAL_SLIDES: total,
+    // Use streaming and collect chunks for faster first-token response
+    let result = "";
+    const stream = await chain.stream({
       SLIDE_TOPIC: topic,
       LANGUAGE: language,
       TONE: tone,
       SUGGESTED_LAYOUT: getLayout(index),
     });
 
+    for await (const chunk of stream) {
+      result += chunk;
+    }
+
     return { index, content: result, success: true };
-  } catch (error) {
-    console.error(`Slide ${index} failed:`, error);
+  } catch {
     return { index, content: "", success: false };
   }
 }
@@ -121,46 +117,38 @@ export async function POST(req: Request) {
             )
           );
 
-          // Process slides in batches of 3 for speed while avoiding rate limits
-          const batchSize = 3;
+          // Process ALL slides in parallel for maximum speed
+          // gpt-4o-mini handles high concurrency very well
+          const allPromises: Promise<SlideResult>[] = outline.map((topic, index) =>
+            generateSlide(topic ?? "", index, language, tone)
+          );
 
-          for (let i = 0; i < total; i += batchSize) {
-            const batchEnd = Math.min(i + batchSize, total);
-            const batchPromises: Promise<SlideResult>[] = [];
+          // Wait for all slides to complete
+          const results = await Promise.all(allPromises);
 
-            for (let j = i; j < batchEnd; j++) {
-              batchPromises.push(
-                generateSlide(title, outline[j] ?? "", j, total, language, tone)
+          // Sort by index and send each slide
+          results.sort((a, b) => a.index - b.index);
+
+          for (const result of results) {
+            if (result.success) {
+              controller.enqueue(
+                encoder.encode(
+                  `data: ${JSON.stringify({
+                    type: "slide",
+                    index: result.index,
+                    content: result.content,
+                  })}\n\n`
+                )
               );
-            }
-
-            // Wait for batch to complete
-            const results = await Promise.all(batchPromises);
-
-            // Sort by index and send each slide
-            results.sort((a, b) => a.index - b.index);
-
-            for (const result of results) {
-              if (result.success) {
-                controller.enqueue(
-                  encoder.encode(
-                    `data: ${JSON.stringify({
-                      type: "slide",
-                      index: result.index,
-                      content: result.content,
-                    })}\n\n`
-                  )
-                );
-              } else {
-                controller.enqueue(
-                  encoder.encode(
-                    `data: ${JSON.stringify({
-                      type: "error",
-                      index: result.index,
-                    })}\n\n`
-                  )
-                );
-              }
+            } else {
+              controller.enqueue(
+                encoder.encode(
+                  `data: ${JSON.stringify({
+                    type: "error",
+                    index: result.index,
+                  })}\n\n`
+                )
+              );
             }
           }
 
@@ -169,8 +157,7 @@ export async function POST(req: Request) {
             encoder.encode(`data: ${JSON.stringify({ type: "done" })}\n\n`)
           );
           controller.close();
-        } catch (error) {
-          console.error("Stream error:", error);
+        } catch {
           controller.enqueue(
             encoder.encode(
               `data: ${JSON.stringify({ type: "error", message: "Generation failed" })}\n\n`
@@ -188,8 +175,7 @@ export async function POST(req: Request) {
         Connection: "keep-alive",
       },
     });
-  } catch (error) {
-    console.error("Error in streaming generation:", error);
+  } catch {
     return NextResponse.json(
       { error: "Failed to generate presentation" },
       { status: 500 }

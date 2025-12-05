@@ -92,6 +92,24 @@ interface XMLNode {
   originalTagContent?: string; // Added to store the original tag content for validation
 }
 
+// Reusable parser instance for single slide parsing (optimization)
+let sharedParser: SlideParser | null = null;
+
+/**
+ * Fast single-slide parser - reuses a shared instance to avoid allocation overhead
+ * Use this for parsing individual slides in parallel generation
+ */
+export function parseSingleSlide(xmlContent: string): PlateSlide | null {
+  if (!sharedParser) {
+    sharedParser = new SlideParser();
+  }
+  sharedParser.reset();
+  sharedParser.parseChunk(`<PRESENTATION>${xmlContent}</PRESENTATION>`);
+  sharedParser.finalize();
+  const slides = sharedParser.getAllSlides();
+  return slides[0] ?? null;
+}
+
 /**
  * Class to parse XML presentation data into Plate.js format with improved streaming support
  */

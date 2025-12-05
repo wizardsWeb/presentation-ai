@@ -4,11 +4,11 @@ import { useEffect, useRef, useCallback } from "react";
 import { useCompletion } from "ai/react";
 import { toast } from "sonner";
 import { usePresentationState } from "@/states/presentation-state";
-import { SlideParser, type PlateSlide } from "../utils/parser";
+import { SlideParser, parseSingleSlide, type PlateSlide } from "../utils/parser";
 import { updatePresentation } from "@/app/_actions/presentation/presentationActions";
 
 // Feature flag: Set to true to use parallel generation (faster)
-const USE_PARALLEL_GENERATION = false;
+const USE_PARALLEL_GENERATION = true;
 
 interface StreamEvent {
   type: "start" | "slide" | "done" | "error";
@@ -32,6 +32,7 @@ export function PresentationGenerationManager() {
     setOutline,
     setSlides,
     setIsGeneratingPresentation,
+    setExpectedSlideCount,
   } = usePresentationState();
 
   // Create a ref for the streaming parser to persist between renders
@@ -87,6 +88,9 @@ export function PresentationGenerationManager() {
       return;
     }
 
+    // Set expected slide count for skeleton loading
+    setExpectedSlideCount(outline.length);
+
     // Reset state
     streamingParserRef.current.reset();
     slidesMapRef.current.clear();
@@ -135,21 +139,20 @@ export function PresentationGenerationManager() {
           if (!line.startsWith("data: ")) continue;
 
           try {
-            const event: StreamEvent = JSON.parse(line.slice(6)) as StreamEvent;
+            const jsonStr = line.slice(6);
+            const event: StreamEvent = JSON.parse(jsonStr) as StreamEvent;
 
             switch (event.type) {
+              case "start":
+                break;
+
               case "slide":
                 if (event.index !== undefined && event.content) {
-                  // Parse the single slide
-                  const tempParser = new SlideParser();
-                  tempParser.parseChunk(
-                    `<PRESENTATION>${event.content}</PRESENTATION>`
-                  );
-                  tempParser.finalize();
-                  const parsedSlides = tempParser.getAllSlides();
+                  // Parse the single slide using optimized parser
+                  const parsedSlide = parseSingleSlide(event.content);
 
-                  if (parsedSlides[0]) {
-                    slidesMapRef.current.set(event.index, parsedSlides[0]);
+                  if (parsedSlide) {
+                    slidesMapRef.current.set(event.index, parsedSlide);
 
                     // Convert map to sorted array and update state
                     const slidesArray = Array.from(slidesMapRef.current.entries())
@@ -164,7 +167,7 @@ export function PresentationGenerationManager() {
                 }
                 break;
 
-              case "done":
+              case "done": {
                 // Final update and save
                 const finalSlides = Array.from(slidesMapRef.current.entries())
                   .sort(([a], [b]) => a - b)
@@ -186,17 +189,16 @@ export function PresentationGenerationManager() {
                   `Generated ${finalSlides.length} slides successfully!`
                 );
                 break;
+              }
 
               case "error":
-                if (event.index !== undefined) {
-                  console.warn(`Slide ${event.index} failed to generate`);
-                } else {
+                if (event.index === undefined) {
                   throw new Error(event.message ?? "Generation failed");
                 }
                 break;
             }
-          } catch (parseError) {
-            console.error("Error parsing stream event:", parseError);
+          } catch {
+            // Skip malformed events
           }
         }
       }
@@ -204,7 +206,6 @@ export function PresentationGenerationManager() {
       if ((error as Error).name === "AbortError") {
         toast.info("Generation cancelled");
       } else {
-        console.error("Generation error:", error);
         toast.error(
           `Failed to generate presentation: ${(error as Error).message}`
         );
@@ -213,9 +214,10 @@ export function PresentationGenerationManager() {
     } finally {
       setIsGeneratingPresentation(false);
       setShouldStartPresentationGeneration(false);
+      setExpectedSlideCount(0); // Reset skeleton count
       abortControllerRef.current = null;
     }
-  }, [resetGeneration, setIsGeneratingPresentation, setSlides, setShouldStartPresentationGeneration]);
+  }, [resetGeneration, setIsGeneratingPresentation, setSlides, setShouldStartPresentationGeneration, setExpectedSlideCount]);
 
   // Outline generation
   const { completion: outlineCompletion, complete: generateOutline } =

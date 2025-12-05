@@ -15,7 +15,88 @@ export type ImageModelList =
   | "black-forest-labs/FLUX.1-schnell-Free"
   | "black-forest-labs/FLUX.1-pro"
   | "black-forest-labs/FLUX.1-dev"
-  | "pollinations"; // Free alternative
+  | "pollinations"
+  | "unsplash"; // Fast stock photos
+
+/**
+ * Search for images on Unsplash (fast, high-quality stock photos)
+ * Free tier: 50 requests/hour
+ */
+async function searchUnsplash(query: string): Promise<string> {
+  const accessKey = process.env.UNSPLASH_ACCESS_KEY;
+  
+  // Extract keywords from the prompt for better search
+  const keywords = extractKeywords(query);
+  
+  if (!accessKey) {
+    // Fallback to Unsplash Source (no API key needed, but less control)
+    const encodedQuery = encodeURIComponent(keywords);
+    return `https://source.unsplash.com/1024x768/?${encodedQuery}`;
+  }
+
+  try {
+    const response = await fetch(
+      `https://api.unsplash.com/search/photos?query=${encodeURIComponent(keywords)}&per_page=1&orientation=landscape`,
+      {
+        headers: {
+          Authorization: `Client-ID ${accessKey}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Unsplash API error");
+    }
+
+    const data = await response.json() as {
+      results: Array<{
+        urls: {
+          regular: string;
+          full: string;
+        };
+      }>;
+    };
+
+    if (data.results && data.results.length > 0) {
+      // Use regular size (1080px width) for good quality without being too large
+      return data.results[0]?.urls?.regular ?? data.results[0]?.urls?.full ?? "";
+    }
+
+    // Fallback if no results
+    const encodedQuery = encodeURIComponent(keywords);
+    return `https://source.unsplash.com/1024x768/?${encodedQuery}`;
+  } catch {
+    // Fallback to Unsplash Source
+    const encodedQuery = encodeURIComponent(keywords);
+    return `https://source.unsplash.com/1024x768/?${encodedQuery}`;
+  }
+}
+
+/**
+ * Extract meaningful keywords from a prompt for image search
+ */
+function extractKeywords(prompt: string): string {
+  // Remove common filler words and keep meaningful terms
+  const stopWords = new Set([
+    'a', 'an', 'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
+    'of', 'with', 'by', 'from', 'as', 'is', 'was', 'are', 'were', 'been',
+    'be', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would',
+    'could', 'should', 'may', 'might', 'must', 'shall', 'can', 'need',
+    'dare', 'ought', 'used', 'image', 'photo', 'picture', 'showing',
+    'depicting', 'illustration', 'graphic', 'visual', 'style', 'like',
+    'such', 'very', 'really', 'just', 'about', 'into', 'through', 'during',
+    'before', 'after', 'above', 'below', 'between', 'under', 'over',
+  ]);
+
+  const words = prompt
+    .toLowerCase()
+    .replace(/[^\w\s]/g, ' ')
+    .split(/\s+/)
+    .filter(word => word.length > 2 && !stopWords.has(word));
+
+  // Take first 3-5 meaningful words for better search results
+  return words.slice(0, 5).join(' ');
+}
 
 /**
  * Generate image using Pollinations.ai (free, no API key needed)
@@ -75,7 +156,7 @@ async function generateWithTogetherAI(
 
 export async function generateImageAction(
   prompt: string,
-  model: ImageModelList = "black-forest-labs/FLUX.1-schnell-Free",
+  model: ImageModelList = "unsplash", // Default to Unsplash for speed
   skipUpload: boolean = false // Set to true to skip UploadThing and return direct URL
 ) {
   const session = await auth();
@@ -85,20 +166,20 @@ export async function generateImageAction(
   }
 
   try {
-    console.log(`Generating image with model: ${model}`);
-
     let imageUrl: string;
 
-    // Generate image based on selected model
-    if (model === "pollinations") {
+    // Generate/search image based on selected model
+    if (model === "unsplash") {
+      imageUrl = await searchUnsplash(prompt);
+      // Unsplash URLs are permanent, no need to upload
+      skipUpload = true;
+    } else if (model === "pollinations") {
       imageUrl = await generateWithPollinations(prompt);
       // Pollinations URLs are permanent, no need to upload
       skipUpload = true;
     } else {
       imageUrl = await generateWithTogetherAI(prompt, model);
     }
-
-    console.log(`Generated image URL: ${imageUrl}`);
 
     // If skipping upload, return the direct URL
     if (skipUpload) {

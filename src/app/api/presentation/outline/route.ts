@@ -5,51 +5,32 @@ import { ChatOpenAI } from "@langchain/openai";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { RunnableSequence } from "@langchain/core/runnables";
 
+// Enable Edge Runtime for lower latency
+export const runtime = "edge";
+
 interface OutlineRequest {
   prompt: string;
   numberOfCards: number;
   language: string;
 }
 
-const outlineTemplate = `Given the following presentation topic and requirements, generate a structured outline with {numberOfCards} main topics in markdown format.
-The outline should be in {language}.
+// Optimized prompt - shorter = faster
+const outlineTemplate = `Generate {numberOfCards} presentation topics in {language} for: {prompt}
 
-Topic: {prompt}
+Format each topic as:
+# Topic Title
+- Key point 1
+- Key point 2
+- Key point 3
 
-Generate exactly {numberOfCards} main topics that would make for an engaging and well-structured presentation. 
-Format the response as markdown content, with each topic as a heading followed by 2-3 bullet points.
-
-Example format:
-# First Main Topic
-- Key point about this topic
-- Another important aspect
-- Brief conclusion or impact
-
-# Second Main Topic
-- Main insight for this section
-- Supporting detail or example
-- Practical application or takeaway
-
-# Third Main Topic 
-- Primary concept to understand
-- Evidence or data point
-- Conclusion or future direction
-
-Make sure the topics:
-1. Flow logically from one to another
-2. Cover the key aspects of the main topic
-3. Are clear and concise
-4. Are engaging for the audience
-5. ALWAYS use bullet points (not paragraphs) and format each point as "- point text"
-6. Do not use bold, italic or underline
-7. Keep each bullet point brief - just one sentence per point
-8. Include exactly 2-3 bullet points per topic (not more, not less)`;
+Rules: Logical flow, clear headings, 2-3 bullet points each, no bold/italic.`;
 
 const outlineChain = RunnableSequence.from([
   PromptTemplate.fromTemplate(outlineTemplate),
   new ChatOpenAI({
     modelName: "gpt-4o-mini",
-    temperature: 0.7,
+    temperature: 0.5,
+    maxTokens: 1500,
     streaming: true,
   }),
 ]);

@@ -30,8 +30,10 @@ interface PresentationState {
   isGeneratingPresentation: boolean;
   outline: string[];
   slides: PlateSlide[]; // This now holds the new object structure
+  expectedSlideCount: number; // For skeleton loading
 
   setSlides: (slides: PlateSlide[]) => void;
+  setExpectedSlideCount: (count: number) => void;
   setCurrentPresentation: (id: string | null, title: string | null) => void;
   setIsGridView: (isGrid: boolean) => void;
   setIsSheetOpen: (isOpen: boolean) => void;
@@ -90,7 +92,7 @@ export const usePresentationState = create<PresentationState>((set) => ({
   outline: [],
   theme: "mystique",
   customThemeData: null,
-  imageModel: "pollinations",
+  imageModel: "unsplash", // Fast stock photos by default
   presentationStyle: "professional",
   slides: [], // Now holds the new slide object structure
   savingStatus: "idle",
@@ -103,10 +105,12 @@ export const usePresentationState = create<PresentationState>((set) => ({
   shouldStartPresentationGeneration: false,
   isGeneratingOutline: false,
   isGeneratingPresentation: false,
+  expectedSlideCount: 0,
 
   setSlides: (slides) => {
     set({ slides });
   },
+  setExpectedSlideCount: (count) => set({ expectedSlideCount: count }),
   setCurrentPresentation: (id, title) =>
     set({ currentPresentationId: id, currentPresentationTitle: title }),
   setIsGridView: (isGrid) => set({ isGridView: isGrid }),

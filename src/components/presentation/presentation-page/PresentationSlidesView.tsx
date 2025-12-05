@@ -16,6 +16,38 @@ import { cn } from "@/lib/utils";
 import { useEffect } from "react";
 import { SlideContainer } from "./SlideContainer";
 import PresentationEditor from "../editor/presentation-editor";
+import { Skeleton } from "@/components/ui/skeleton";
+
+// Skeleton slide component for loading state
+function SlideSkeleton({ index }: { index: number }) {
+  return (
+    <div className="slide-wrapper">
+      <div className="relative">
+        <div className="min-h-[300px] rounded-md border bg-background p-6">
+          {/* Title skeleton */}
+          <Skeleton className="mb-4 h-8 w-3/4" />
+          {/* Content skeletons */}
+          <div className="space-y-3">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-5/6" />
+            <Skeleton className="h-4 w-4/6" />
+          </div>
+          {/* Image placeholder */}
+          <Skeleton className="mt-6 h-32 w-full" />
+          {/* More content */}
+          <div className="mt-4 space-y-2">
+            <Skeleton className="h-4 w-2/3" />
+            <Skeleton className="h-4 w-1/2" />
+          </div>
+        </div>
+        {/* Slide number */}
+        <div className="absolute bottom-2 right-2 text-xs text-muted-foreground">
+          Generating slide {index + 1}...
+        </div>
+      </div>
+    </div>
+  );
+}
 
 interface PresentationSlidesViewProps {
   handleSlideChange: (value: TElement[], index: number) => void;
@@ -32,10 +64,17 @@ export const PresentationSlidesView = ({
     nextSlide,
     previousSlide,
     setShouldShowExitHeader,
+    expectedSlideCount,
   } = usePresentationState();
   const { items, sensors, handleDragEnd } = usePresentationSlides();
   // Use the slide change watcher to automatically save changes
   useSlideChangeWatcher({ debounceDelay: 600 });
+
+  // Calculate how many skeleton slides to show
+  const skeletonCount = isGeneratingPresentation
+    ? Math.max(0, expectedSlideCount - items.length)
+    : 0;
+
   // Handle keyboard navigation in presentation mode
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -120,6 +159,12 @@ export const PresentationSlidesView = ({
               </SlidePreviewRenderer>
             </div>
           ))}
+
+          {/* Skeleton slides for remaining expected slides */}
+          {skeletonCount > 0 &&
+            Array.from({ length: skeletonCount }).map((_, index) => (
+              <SlideSkeleton key={`skeleton-${index}`} index={items.length + index} />
+            ))}
         </DndProvider>
       </SortableContext>
     </DndContext>
