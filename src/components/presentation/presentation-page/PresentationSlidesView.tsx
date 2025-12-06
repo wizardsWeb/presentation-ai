@@ -17,6 +17,7 @@ import { useEffect } from "react";
 import { SlideContainer } from "./SlideContainer";
 import PresentationEditor from "../editor/presentation-editor";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AgentProgress } from "../dashboard/AgentProgress";
 
 // Skeleton slide component for loading state
 function SlideSkeleton({ index }: { index: number }) {
@@ -65,6 +66,8 @@ export const PresentationSlidesView = ({
     previousSlide,
     setShouldShowExitHeader,
     expectedSlideCount,
+    isAgentActive,
+    agentSteps,
   } = usePresentationState();
   const { items, sensors, handleDragEnd } = usePresentationSlides();
   // Use the slide change watcher to automatically save changes
@@ -107,11 +110,19 @@ export const PresentationSlidesView = ({
   }, []);
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragEnd={handleDragEnd}
-    >
+    <>
+      {/* Agent Progress Panel - shown during research mode */}
+      {isAgentActive && agentSteps.length > 0 && (
+        <div className="mb-6">
+          <AgentProgress steps={agentSteps} isActive={isAgentActive} />
+        </div>
+      )}
+      
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
       <SortableContext items={items} strategy={verticalListSortingStrategy}>
         <DndProvider backend={HTML5Backend}>
           {items.map((slide, index) => (
@@ -168,5 +179,6 @@ export const PresentationSlidesView = ({
         </DndProvider>
       </SortableContext>
     </DndContext>
+    </>
   );
 };

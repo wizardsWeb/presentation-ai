@@ -14,6 +14,7 @@ import { PresentationsSidebar } from "./PresentationsSidebar";
 import { useEffect } from "react";
 import { PresentationHeader } from "./PresentationHeader";
 import { createEmptyPresentation } from "@/app/_actions/presentation/presentationActions";
+import { GenerationModeSelector } from "./GenerationModeSelector";
 
 export function PresentationDashboard() {
   const router = useRouter();
@@ -95,7 +96,8 @@ export function PresentationDashboard() {
         <div className="space-y-8">
           <PresentationInput />
           <PresentationControls />
-          <div className="flex items-center justify-end">
+          <div className="flex items-center justify-between">
+            <GenerationModeSelector />
             <div className="flex items-center gap-2">
               <Button
                 onClick={handleGenerate}

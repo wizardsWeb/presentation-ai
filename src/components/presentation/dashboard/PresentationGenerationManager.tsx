@@ -3,19 +3,44 @@
 import { useEffect, useRef, useCallback } from "react";
 import { useCompletion } from "ai/react";
 import { toast } from "sonner";
-import { usePresentationState } from "@/states/presentation-state";
-import { SlideParser, parseSingleSlide, type PlateSlide } from "../utils/parser";
+import { usePresentationState, type AgentStep } from "@/states/presentation-state";
+import { SlideParser, parseSingleSlide, parsePartialSlide, type PlateSlide } from "../utils/parser";
 import { updatePresentation } from "@/app/_actions/presentation/presentationActions";
 
-// Feature flag: Set to true to use parallel generation (faster)
-const USE_PARALLEL_GENERATION = true;
+// Use real-time streaming (shows content word-by-word as it generates)
+const USE_REALTIME_STREAMING = true;
 
 interface StreamEvent {
-  type: "start" | "slide" | "done" | "error";
+  type: "start" | "slide" | "slide_start" | "token" | "slide_complete" | "slide_error" | "done" | "error";
   total?: number;
   index?: number;
   content?: string;
+  chunk?: string;
+  partial?: string;
+  topic?: string;
   message?: string;
+}
+
+interface AgentStreamEvent {
+  type: 
+    | "agent_start"
+    | "slide_start"
+    | "researching"
+    | "research_complete"
+    | "generating"
+    | "token"           // NEW: Token streaming
+    | "validating"
+    | "refining"
+    | "slide_complete"
+    | "agent_done"
+    | "error";
+  slideIndex?: number;
+  totalSlides?: number;
+  message?: string;
+  content?: string;
+  chunk?: string;       // NEW: Token chunk
+  partial?: string;     // NEW: Accumulated content
+  data?: Record<string, unknown>;
 }
 
 export function PresentationGenerationManager() {
@@ -33,6 +58,10 @@ export function PresentationGenerationManager() {
     setSlides,
     setIsGeneratingPresentation,
     setExpectedSlideCount,
+    generationMode,
+    setIsAgentActive,
+    addAgentStep,
+    clearAgentSteps,
   } = usePresentationState();
 
   // Create a ref for the streaming parser to persist between renders
@@ -70,8 +99,8 @@ export function PresentationGenerationManager() {
     outlineRafIdRef.current = null;
   };
 
-  // Parallel generation function
-  const generatePresentationParallel = useCallback(async () => {
+  // Real-time streaming generation function - shows content word-by-word
+  const generatePresentationRealtime = useCallback(async () => {
     const {
       outline,
       presentationInput,
@@ -101,7 +130,7 @@ export function PresentationGenerationManager() {
     abortControllerRef.current = new AbortController();
 
     try {
-      const response = await fetch("/api/presentation/generate-stream", {
+      const response = await fetch("/api/presentation/generate-realtime", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -124,6 +153,8 @@ export function PresentationGenerationManager() {
 
       const decoder = new TextDecoder();
       let buffer = "";
+      const PROGRESSIVE_UPDATE_INTERVAL = 100; // Update partial slides every 100ms
+      const lastUpdatePerSlide = new Map<number, number>(); // Track last update per slide
 
       while (true) {
         const { done, value } = await reader.read();
@@ -144,11 +175,44 @@ export function PresentationGenerationManager() {
 
             switch (event.type) {
               case "start":
+              case "slide_start":
+                // These events are for tracking, no UI update needed
                 break;
 
+              case "token":
+                // Progressive streaming - parse partial XML and show it
+                if (event.index !== undefined && event.partial) {
+                  const now = Date.now();
+                  const lastUpdate = lastUpdatePerSlide.get(event.index) ?? 0;
+                  
+                  // Throttle progressive updates per slide for performance
+                  if (now - lastUpdate > PROGRESSIVE_UPDATE_INTERVAL) {
+                    lastUpdatePerSlide.set(event.index, now);
+                    
+                    // Try to parse the partial XML
+                    const partialSlide = parsePartialSlide(event.partial);
+                    if (partialSlide) {
+                      // Update this specific slide
+                      slidesMapRef.current.set(event.index, partialSlide);
+
+                      // Convert map to sorted array and update state
+                      const slidesArray = Array.from(slidesMapRef.current.entries())
+                        .sort(([a], [b]) => a - b)
+                        .map(([, slide]) => slide);
+
+                      slidesBufferRef.current = slidesArray;
+                      if (slidesRafIdRef.current === null) {
+                        slidesRafIdRef.current = requestAnimationFrame(updateSlidesWithRAF);
+                      }
+                    }
+                  }
+                }
+                break;
+
+              case "slide_complete":
               case "slide":
                 if (event.index !== undefined && event.content) {
-                  // Parse the single slide using optimized parser
+                  // Parse the complete slide
                   const parsedSlide = parseSingleSlide(event.content);
 
                   if (parsedSlide) {
@@ -191,6 +255,7 @@ export function PresentationGenerationManager() {
                 break;
               }
 
+              case "slide_error":
               case "error":
                 if (event.index === undefined) {
                   throw new Error(event.message ?? "Generation failed");
@@ -218,6 +283,205 @@ export function PresentationGenerationManager() {
       abortControllerRef.current = null;
     }
   }, [resetGeneration, setIsGeneratingPresentation, setSlides, setShouldStartPresentationGeneration, setExpectedSlideCount]);
+
+  // Agent-powered generation function (Research Mode)
+  const generatePresentationWithAgent = useCallback(async () => {
+    const {
+      outline,
+      presentationInput,
+      language,
+      presentationStyle,
+      currentPresentationTitle,
+      currentPresentationId,
+      theme,
+    } = usePresentationState.getState();
+
+    if (!outline.length) {
+      toast.error("No outline to generate from");
+      resetGeneration();
+      return;
+    }
+
+    // Set expected slide count for skeleton loading
+    setExpectedSlideCount(outline.length);
+
+    // Reset state
+    streamingParserRef.current.reset();
+    slidesMapRef.current.clear();
+    setSlides([]);
+    setIsGeneratingPresentation(true);
+    clearAgentSteps();
+    setIsAgentActive(true);
+
+    // Create abort controller for cancellation
+    abortControllerRef.current = new AbortController();
+
+    // Track per-slide throttling for progressive updates
+    const PROGRESSIVE_UPDATE_INTERVAL = 100; // Update partial slides every 100ms
+    const lastUpdatePerSlide = new Map<number, number>();
+
+    try {
+      const response = await fetch("/api/presentation/generate-agent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: presentationInput ?? currentPresentationTitle ?? "",
+          outline,
+          language,
+          tone: presentationStyle,
+          config: {
+            enableResearch: true,
+            enableValidation: false,
+            maxRefinements: 0,
+            minValidationScore: 7,
+          },
+        }),
+        signal: abortControllerRef.current.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error("No response body");
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        // Process complete events from buffer
+        const lines = buffer.split("\n\n");
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+
+          try {
+            const jsonStr = line.slice(6);
+            const event = JSON.parse(jsonStr) as AgentStreamEvent;
+
+            // Add to agent steps for UI (using global state) - but skip token events for cleaner UI
+            if (event.type !== "token") {
+              addAgentStep({
+                type: event.type,
+                slideIndex: event.slideIndex,
+                message: event.message,
+                data: event.data,
+                timestamp: Date.now(),
+              });
+            }
+
+            switch (event.type) {
+              case "token":
+                // Progressive streaming - parse partial XML and show it
+                if (event.slideIndex !== undefined && event.partial) {
+                  const now = Date.now();
+                  const lastUpdate = lastUpdatePerSlide.get(event.slideIndex) ?? 0;
+                  
+                  // Throttle progressive updates per slide for performance
+                  if (now - lastUpdate > PROGRESSIVE_UPDATE_INTERVAL) {
+                    lastUpdatePerSlide.set(event.slideIndex, now);
+                    
+                    // Try to parse the partial XML
+                    const partialSlide = parsePartialSlide(event.partial);
+                    if (partialSlide) {
+                      slidesMapRef.current.set(event.slideIndex, partialSlide);
+
+                      // Convert map to sorted array and update state
+                      const slidesArray = Array.from(slidesMapRef.current.entries())
+                        .sort(([a], [b]) => a - b)
+                        .map(([, slide]) => slide);
+
+                      slidesBufferRef.current = slidesArray;
+                      if (slidesRafIdRef.current === null) {
+                        slidesRafIdRef.current = requestAnimationFrame(updateSlidesWithRAF);
+                      }
+                    }
+                  }
+                }
+                break;
+
+              case "slide_complete":
+                if (event.slideIndex !== undefined && event.content) {
+                  // Parse the completed slide
+                  const parsedSlide = parseSingleSlide(event.content);
+
+                  if (parsedSlide) {
+                    slidesMapRef.current.set(event.slideIndex, parsedSlide);
+
+                    // Convert map to sorted array and update state
+                    const slidesArray = Array.from(slidesMapRef.current.entries())
+                      .sort(([a], [b]) => a - b)
+                      .map(([, slide]) => slide);
+
+                    slidesBufferRef.current = slidesArray;
+                    if (slidesRafIdRef.current === null) {
+                      slidesRafIdRef.current = requestAnimationFrame(updateSlidesWithRAF);
+                    }
+                  }
+                }
+                break;
+
+              case "agent_done": {
+                // Final update and save
+                const finalSlides = Array.from(slidesMapRef.current.entries())
+                  .sort(([a], [b]) => a - b)
+                  .map(([, slide]) => slide);
+
+                slidesBufferRef.current = finalSlides;
+                requestAnimationFrame(updateSlidesWithRAF);
+
+                if (currentPresentationId && finalSlides.length > 0) {
+                  void updatePresentation({
+                    id: currentPresentationId,
+                    content: { slides: finalSlides },
+                    title: currentPresentationTitle ?? "",
+                    theme,
+                  });
+                }
+
+                toast.success(
+                  `Generated ${finalSlides.length} slides with research! 🔍`
+                );
+                break;
+              }
+
+              case "error":
+                if (event.slideIndex === undefined) {
+                  throw new Error(event.message ?? "Agent generation failed");
+                }
+                break;
+            }
+          } catch {
+            // Skip malformed events
+          }
+        }
+      }
+    } catch (error) {
+      if ((error as Error).name === "AbortError") {
+        toast.info("Generation cancelled");
+      } else {
+        toast.error(
+          `Failed to generate presentation: ${(error as Error).message}`
+        );
+      }
+      resetGeneration();
+    } finally {
+      setIsGeneratingPresentation(false);
+      setShouldStartPresentationGeneration(false);
+      setExpectedSlideCount(0);
+      setIsAgentActive(false);
+      abortControllerRef.current = null;
+    }
+  }, [resetGeneration, setIsGeneratingPresentation, setSlides, setShouldStartPresentationGeneration, setExpectedSlideCount, setIsAgentActive, addAgentStep, clearAgentSteps]);
 
   // Outline generation
   const { completion: outlineCompletion, complete: generateOutline } =
@@ -360,7 +624,7 @@ export function PresentationGenerationManager() {
     });
 
   useEffect(() => {
-    if (!USE_PARALLEL_GENERATION && presentationCompletion) {
+    if (!USE_REALTIME_STREAMING && presentationCompletion) {
       try {
         streamingParserRef.current.reset();
         streamingParserRef.current.parseChunk(presentationCompletion);
@@ -382,9 +646,19 @@ export function PresentationGenerationManager() {
   // Watch for presentation generation start
   useEffect(() => {
     if (shouldStartPresentationGeneration) {
-      if (USE_PARALLEL_GENERATION) {
-        // Use parallel generation (faster)
-        void generatePresentationParallel();
+      // Check generation mode from state
+      const { generationMode } = usePresentationState.getState();
+      
+      console.log("[Generation] Starting with mode:", generationMode);
+
+      if (generationMode === "research") {
+        // Use agent-powered generation with research and real-time streaming
+        console.log("[Generation] Using AGENT mode with streaming");
+        void generatePresentationWithAgent();
+      } else if (USE_REALTIME_STREAMING) {
+        // Use real-time streaming (shows content word-by-word)
+        console.log("[Generation] Using REALTIME STREAMING mode");
+        void generatePresentationRealtime();
       } else {
         // Use sequential generation (original)
         const {
@@ -412,7 +686,7 @@ export function PresentationGenerationManager() {
         });
       }
     }
-  }, [shouldStartPresentationGeneration, generatePresentationParallel]);
+  }, [shouldStartPresentationGeneration, generatePresentationRealtime, generatePresentationWithAgent]);
 
   // Clean up RAF and abort controller on unmount
   useEffect(() => {

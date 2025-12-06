@@ -3,6 +3,17 @@ import { type Themes, type ThemeProperties } from "@/lib/presentation/themes";
 import { type ImageModelList } from "@/app/_actions/image/generate";
 import { type PlateSlide } from "@/components/presentation/utils/parser";
 
+export type GenerationMode = "quick" | "research";
+
+// Agent step type for tracking agentic generation progress
+export interface AgentStep {
+  type: string;
+  slideIndex?: number;
+  message?: string;
+  data?: Record<string, unknown>;
+  timestamp: number;
+}
+
 interface PresentationState {
   currentPresentationId: string | null;
   currentPresentationTitle: string | null;
@@ -31,9 +42,19 @@ interface PresentationState {
   outline: string[];
   slides: PlateSlide[]; // This now holds the new object structure
   expectedSlideCount: number; // For skeleton loading
+  generationMode: GenerationMode; // Quick (parallel) vs Research (agent)
+
+  // Agent mode state
+  isAgentActive: boolean;
+  agentSteps: AgentStep[];
 
   setSlides: (slides: PlateSlide[]) => void;
   setExpectedSlideCount: (count: number) => void;
+  setGenerationMode: (mode: GenerationMode) => void;
+  setIsAgentActive: (isActive: boolean) => void;
+  setAgentSteps: (steps: AgentStep[]) => void;
+  addAgentStep: (step: AgentStep) => void;
+  clearAgentSteps: () => void;
   setCurrentPresentation: (id: string | null, title: string | null) => void;
   setIsGridView: (isGrid: boolean) => void;
   setIsSheetOpen: (isOpen: boolean) => void;
@@ -106,11 +127,21 @@ export const usePresentationState = create<PresentationState>((set) => ({
   isGeneratingOutline: false,
   isGeneratingPresentation: false,
   expectedSlideCount: 0,
+  generationMode: "quick", // Default to quick mode
+
+  // Agent mode state
+  isAgentActive: false,
+  agentSteps: [],
 
   setSlides: (slides) => {
     set({ slides });
   },
   setExpectedSlideCount: (count) => set({ expectedSlideCount: count }),
+  setGenerationMode: (mode) => set({ generationMode: mode }),
+  setIsAgentActive: (isActive) => set({ isAgentActive: isActive }),
+  setAgentSteps: (steps) => set({ agentSteps: steps }),
+  addAgentStep: (step) => set((state) => ({ agentSteps: [...state.agentSteps, step] })),
+  clearAgentSteps: () => set({ agentSteps: [] }),
   setCurrentPresentation: (id, title) =>
     set({ currentPresentationId: id, currentPresentationTitle: title }),
   setIsGridView: (isGrid) => set({ isGridView: isGrid }),
@@ -171,6 +202,8 @@ export const usePresentationState = create<PresentationState>((set) => ({
       shouldStartPresentationGeneration: false,
       isGeneratingOutline: false,
       isGeneratingPresentation: false,
+      isAgentActive: false,
+      agentSteps: [],
     }),
 
   setIsThemeCreatorOpen: (update) => set({ isThemeCreatorOpen: update }),

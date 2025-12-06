@@ -111,6 +111,79 @@ export function parseSingleSlide(xmlContent: string): PlateSlide | null {
 }
 
 /**
+ * Try to parse partial/incomplete XML content progressively
+ * This allows displaying content as it streams in, even before the XML is complete
+ * Returns null if the content is too incomplete to parse
+ */
+export function parsePartialSlide(partialXml: string): PlateSlide | null {
+  // Try to close any unclosed tags to make valid XML
+  const closedXml = closePartialXml(partialXml);
+  
+  if (!closedXml) {
+    return null;
+  }
+  
+  try {
+    return parseSingleSlide(closedXml);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Attempts to close any unclosed XML tags to make the content parseable
+ * This is used for progressive streaming display
+ */
+function closePartialXml(partial: string): string | null {
+  if (!partial || partial.trim().length < 10) {
+    return null;
+  }
+  
+  // Track open tags
+  const openTags: string[] = [];
+  const tagRegex = /<\/?([A-Z][A-Z0-9]*)[^>]*\/?>/gi;
+  let match;
+  
+  while ((match = tagRegex.exec(partial)) !== null) {
+    const fullMatch = match[0];
+    const tagName = match[1]?.toUpperCase() ?? "";
+    
+    // Skip self-closing tags
+    if (fullMatch.endsWith("/>") || fullMatch.includes(" />")) {
+      continue;
+    }
+    
+    if (fullMatch.startsWith("</")) {
+      // Closing tag - pop from stack if matches
+      const lastOpen = openTags[openTags.length - 1];
+      if (lastOpen === tagName) {
+        openTags.pop();
+      }
+    } else {
+      // Opening tag - push to stack
+      openTags.push(tagName);
+    }
+  }
+  
+  // If we have an incomplete tag at the end, try to complete it
+  const lastLt = partial.lastIndexOf("<");
+  const lastGt = partial.lastIndexOf(">");
+  
+  let result = partial;
+  if (lastLt > lastGt) {
+    // Incomplete tag at end, truncate it
+    result = partial.substring(0, lastLt);
+  }
+  
+  // Close all open tags in reverse order
+  for (let i = openTags.length - 1; i >= 0; i--) {
+    result += `</${openTags[i]}>`;
+  }
+  
+  return result;
+}
+
+/**
  * Class to parse XML presentation data into Plate.js format with improved streaming support
  */
 export class SlideParser {
