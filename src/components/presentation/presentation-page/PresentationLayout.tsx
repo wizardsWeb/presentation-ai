@@ -6,10 +6,11 @@ import { SlidePreview } from "./SlidePreview";
 import { CustomThemeFontLoader } from "./FontLoader";
 import { LoadingState } from "./Loading";
 import { Resizable } from "re-resizable";
-import { GripVertical } from "lucide-react";
+import { GripVertical, FileText } from "lucide-react";
 import { usePresentationSlides } from "@/hooks/presentation/usePresentationSlides";
 import { type ThemeProperties } from "@/lib/presentation/themes";
 import { ThemeBackground } from "../theme/ThemeBackground";
+import { Button } from "@/components/ui/button";
 
 interface PresentationLayoutProps {
   children: React.ReactNode;
@@ -22,7 +23,8 @@ export function PresentationLayout({
   isLoading = false,
   themeData,
 }: PresentationLayoutProps) {
-  const { currentSlideIndex, setCurrentSlideIndex } = usePresentationState();
+  const { currentSlideIndex, setCurrentSlideIndex, setIsSheetOpen, slides } =
+    usePresentationState();
   const [sidebarWidth, setSidebarWidth] = useState(150);
 
   const { scrollToSlide } = usePresentationSlides();
@@ -75,8 +77,21 @@ export function PresentationLayout({
         </div>
 
         {/* Main Presentation Content - Scrollable */}
-        <div className="presentation-slides max-h-full flex-1 overflow-auto pb-20">
+        <div className="presentation-slides max-h-full flex-1 overflow-auto pb-20 relative">
           {children}
+          
+          {/* Floating Presenter Notes Button */}
+          {slides.length > 0 && (
+            <Button
+              onClick={() => setIsSheetOpen(true)}
+              className="fixed bottom-6 right-6 z-50 shadow-lg"
+              size="lg"
+              variant="default"
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Presenter Notes
+            </Button>
+          )}
         </div>
       </div>
     </ThemeBackground>

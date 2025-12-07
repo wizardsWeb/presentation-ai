@@ -79,7 +79,7 @@ export async function POST(req: Request) {
     const writer = writable.getWriter();
 
     // Start async generation in the background
-    (async () => {
+    void (async () => {
       try {
         const total = outline.length;
 

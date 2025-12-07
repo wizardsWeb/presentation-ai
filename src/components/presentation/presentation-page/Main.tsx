@@ -18,6 +18,7 @@ import debounce from "lodash.debounce";
 import { PresentationSlidesView } from "./PresentationSlidesView";
 import { LoadingState } from "./Loading";
 import { PresentationLayout } from "./PresentationLayout";
+import { PresenterNotes } from "./PresenterNotes";
 import { type Value } from "@udecode/plate-common";
 import {
   getPresentation,
@@ -232,18 +233,21 @@ export default function PresentationPage() {
   }
 
   return (
-    <PresentationLayout
-      isLoading={isLoading}
-      themeData={currentThemeData ?? undefined}
-    >
-      <div className="mx-auto max-w-[90%] space-y-8 p-8 pt-16">
-        <div className="space-y-8">
-          <PresentationSlidesView
-            handleSlideChange={handleSlideChange}
-            isGeneratingPresentation={isGeneratingPresentation}
-          />
+    <>
+      <PresentationLayout
+        isLoading={isLoading}
+        themeData={currentThemeData ?? undefined}
+      >
+        <div className="mx-auto max-w-[90%] space-y-8 p-8 pt-16">
+          <div className="space-y-8">
+            <PresentationSlidesView
+              handleSlideChange={handleSlideChange}
+              isGeneratingPresentation={isGeneratingPresentation}
+            />
+          </div>
         </div>
-      </div>
-    </PresentationLayout>
+      </PresentationLayout>
+      <PresenterNotes />
+    </>
   );
 }

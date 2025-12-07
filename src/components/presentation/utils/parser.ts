@@ -145,8 +145,9 @@ function closePartialXml(partial: string): string | null {
   let match;
   
   while ((match = tagRegex.exec(partial)) !== null) {
-    const fullMatch = match[0];
-    const tagName = match[1]?.toUpperCase() ?? "";
+    if (!match || !Array.isArray(match) || match.length < 2) continue;
+    const fullMatch = String(match[0] ?? "");
+    const tagName = String(match[1] ?? "").toUpperCase();
     
     // Skip self-closing tags
     if (fullMatch.endsWith("/>") || fullMatch.includes(" />")) {

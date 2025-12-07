@@ -42,6 +42,7 @@ export default function PresentationGenerateWithIdPage() {
   // Track if this is a fresh navigation or a revisit
   const initialLoadComplete = useRef(false);
   const generationStarted = useRef(false);
+  const initialIsGeneratingOutline = useRef<boolean | null>(null);
 
   // Use React Query to fetch presentation data
   const { data: presentationData, isLoading: isLoadingPresentation } = useQuery(
@@ -58,16 +59,34 @@ export default function PresentationGenerateWithIdPage() {
     }
   );
 
+  // Capture the initial isGeneratingOutline value on first render
+  useEffect(() => {
+    if (initialIsGeneratingOutline.current === null) {
+      initialIsGeneratingOutline.current = isGeneratingOutline;
+    }
+  }, [isGeneratingOutline]);
+
   // This effect handles the immediate startup of generation upon first mount
   // only if we're coming fresh from the dashboard (isGeneratingOutline === true)
+  // and the presentation doesn't already have an outline
   useEffect(() => {
-    // Only run once on initial page load
+    // Wait for presentation data to finish loading
+    if (isLoadingPresentation) return;
+    
+    // Only run once after data has loaded
     if (initialLoadComplete.current) return;
     initialLoadComplete.current = true;
 
-    // If isGeneratingOutline is true but generation hasn't been started yet,
+    // If presentation already has an outline, don't generate a new one
+    if (presentationData?.presentation?.outline && presentationData.presentation.outline.length > 0) {
+      console.log("Presentation already has an outline, skipping generation");
+      return;
+    }
+
+    // Check the initial value captured on first render
+    // If isGeneratingOutline was true initially but generation hasn't been started yet,
     // this indicates we just came from the dashboard and should start generation
-    if (isGeneratingOutline && !generationStarted.current) {
+    if (initialIsGeneratingOutline.current === true && !generationStarted.current) {
       console.log("Starting outline generation after navigation");
       generationStarted.current = true;
 
@@ -77,7 +96,8 @@ export default function PresentationGenerateWithIdPage() {
         setShouldStartOutlineGeneration(true);
       }, 100);
     }
-  }, [isGeneratingOutline, setShouldStartOutlineGeneration]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoadingPresentation, presentationData]); // Re-check when data finishes loading
 
   // Update presentation state when data is fetched
   useEffect(() => {

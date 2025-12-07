@@ -52,7 +52,7 @@ Be concise. Max 2 issues and 2 suggestions.`;
 export async function validateSlide(
   topic: string,
   content: string,
-  hasResearch: boolean = false
+  hasResearch = false
 ): Promise<ValidationResult> {
   try {
     const prompt = VALIDATION_PROMPT

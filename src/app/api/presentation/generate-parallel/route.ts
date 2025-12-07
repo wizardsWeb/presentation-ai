@@ -214,7 +214,7 @@ export async function POST(req: Request) {
 
       for (let j = i; j < batchEnd; j++) {
         // Pre-calculate layouts for this batch to ensure variety
-        const expectedLayout = suggestLayout(j, [
+        suggestLayout(j, [
           ...usedLayouts,
           ...layouts.slice(0, j - i),
         ]);

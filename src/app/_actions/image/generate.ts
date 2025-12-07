@@ -157,7 +157,7 @@ async function generateWithTogetherAI(
 export async function generateImageAction(
   prompt: string,
   model: ImageModelList = "unsplash", // Default to Unsplash for speed
-  skipUpload: boolean = false // Set to true to skip UploadThing and return direct URL
+  skipUpload = false // Set to true to skip UploadThing and return direct URL
 ) {
   const session = await auth();
 

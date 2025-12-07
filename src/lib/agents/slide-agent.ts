@@ -234,8 +234,8 @@ export async function batchResearchTopics(
  */
 async function withRetry<T>(
   fn: () => Promise<T>,
-  maxRetries: number = 1, // Reduced retries for speed
-  delay: number = 300 // Shorter delay
+  maxRetries = 1, // Reduced retries for speed
+  delay = 300 // Shorter delay
 ): Promise<T> {
   let lastError: Error | null = null;
   

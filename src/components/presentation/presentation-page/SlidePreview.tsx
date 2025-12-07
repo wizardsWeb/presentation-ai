@@ -21,7 +21,7 @@ export function SlidePreview({
       <div className="flex flex-col space-y-4">
         {slides.map((slide, index) => (
           <div
-            key={slide.id || index}
+            key={`slide-preview-${slide.id}-${index}`}
             className={cn(
               "group relative cursor-pointer overflow-hidden rounded-md border transition-all hover:border-primary",
               currentSlideIndex === index

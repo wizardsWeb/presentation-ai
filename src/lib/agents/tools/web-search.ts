@@ -118,7 +118,8 @@ async function searchWithDuckDuckGo(query: string): Promise<WebSearchResponse> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
 
-    const response = await fetch(`https://api.duckduckgo.com/?${params}`, {
+    const paramsString = params.toString();
+    const response = await fetch(`https://api.duckduckgo.com/?${paramsString}`, {
       headers: {
         "User-Agent": "PresentationAI/1.0",
       },

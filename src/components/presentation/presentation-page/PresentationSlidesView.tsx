@@ -127,7 +127,7 @@ export const PresentationSlidesView = ({
         <DndProvider backend={HTML5Backend}>
           {items.map((slide, index) => (
             <div
-              key={slide.id}
+              key={`slide-${slide.id}-${index}`}
               className={`slide-wrapper slide-wrapper-${index}`}
             >
               <SlideContainer index={index} id={slide.id}>
