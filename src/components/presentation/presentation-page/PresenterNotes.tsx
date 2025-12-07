@@ -21,7 +21,7 @@ interface PresenterNote {
 }
 
 export function PresenterNotes() {
-  const { isSheetOpen, setIsSheetOpen, slides, language, currentPresentationTitle } =
+  const { isSheetOpen, setIsSheetOpen, slides, language, currentPresentationTitle, currentPresentationId } =
     usePresentationState();
   const [notes, setNotes] = useState<PresenterNote[]>([]);
   const [loading, setLoading] = useState(false);
@@ -34,7 +34,15 @@ export function PresenterNotes() {
     setSelectedSlideIndex(null);
   }, [slides.length]);
 
-  // Generate presenter notes when sheet opens
+  // Load existing presenter notes from database when presentation loads
+  useEffect(() => {
+    if (currentPresentationId && slides.length > 0 && notes.length === 0 && !loading) {
+      void loadExistingNotes();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPresentationId, slides.length]);
+
+  // Generate presenter notes when sheet opens (if not already loaded)
   useEffect(() => {
     if (isSheetOpen && slides.length > 0 && notes.length === 0 && !loading) {
       void generateNotes();
@@ -42,8 +50,32 @@ export function PresenterNotes() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSheetOpen]);
 
+  const loadExistingNotes = async () => {
+    if (!currentPresentationId || slides.length === 0) return;
+
+    try {
+      const response = await fetch(`/api/presentation/presenter-notes?presentationId=${currentPresentationId}`);
+      if (response.ok) {
+        const data = (await response.json()) as { notes?: PresenterNote[] };
+        if (data.notes && Array.isArray(data.notes) && data.notes.length === slides.length) {
+          setNotes(data.notes);
+          return true; // Notes loaded successfully
+        }
+      }
+    } catch (err) {
+      console.error("Error loading existing presenter notes:", err);
+    }
+    return false; // No existing notes found
+  };
+
   const generateNotes = async () => {
     if (slides.length === 0) return;
+
+    // First try to load existing notes
+    const existingNotesLoaded = await loadExistingNotes();
+    if (existingNotesLoaded) {
+      return; // Notes already loaded from database
+    }
 
     setLoading(true);
     setError(null);
@@ -55,10 +87,15 @@ export function PresenterNotes() {
         slideNumber: index + 1,
       }));
 
+      if (!currentPresentationId) {
+        throw new Error("No presentation ID available");
+      }
+
       const response = await fetch("/api/presentation/presenter-notes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          presentationId: currentPresentationId,
           slides: slideTexts,
           language,
           presentationTitle: currentPresentationTitle,

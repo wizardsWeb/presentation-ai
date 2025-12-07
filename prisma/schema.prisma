@@ -103,6 +103,7 @@ model Presentation {
     presentationStyle String? // The style of the presentation
     language          String?      @default("en-US") // The language of the presentation
     outline           String[] // Store the presentation outline
+    presenterNotes    Json? // Store presenter notes: Array<{summary: string, fullNotes: string}>
     base              BaseDocument @relation(fields: [id], references: [id], onDelete: Cascade)
     templateId        String?
     customThemeId     String? // Reference to custom theme if used

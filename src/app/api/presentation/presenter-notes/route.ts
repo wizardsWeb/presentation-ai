@@ -2,11 +2,56 @@ import { NextResponse } from "next/server";
 import { auth } from "@/server/auth";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { env } from "@/env";
+import { db } from "@/server/db";
+import { type InputJsonValue } from "@prisma/client/runtime/library";
 
 // Use Node.js runtime for Gemini
 export const runtime = "nodejs";
 
+// GET endpoint to retrieve existing presenter notes
+export async function GET(req: Request) {
+  try {
+    const session = await auth();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const presentationId = searchParams.get("presentationId");
+
+    if (!presentationId) {
+      return NextResponse.json(
+        { error: "Missing presentationId" },
+        { status: 400 },
+      );
+    }
+
+    // Fetch presenter notes from database
+    const presentation = await db.presentation.findUnique({
+      where: { id: presentationId },
+    }) as { presenterNotes?: unknown } | null;
+
+    const notes = presentation?.presenterNotes as Array<{
+      summary: string;
+      fullNotes: string;
+    }> | undefined;
+
+    if (!notes || !Array.isArray(notes)) {
+      return NextResponse.json({ notes: null });
+    }
+
+    return NextResponse.json({ notes });
+  } catch (error) {
+    console.error("Error fetching presenter notes:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch presenter notes" },
+      { status: 500 },
+    );
+  }
+}
+
 interface PresenterNotesRequest {
+  presentationId: string;
   slides: Array<{
     content: string; // Plain text content of the slide
     slideNumber: number;
@@ -172,17 +217,49 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { slides, language, presentationTitle } =
+    const { presentationId, slides, language, presentationTitle } =
       (await req.json()) as PresenterNotesRequest;
 
-    if (!slides || !Array.isArray(slides) || slides.length === 0 || !language) {
+    if (!presentationId || !slides || !Array.isArray(slides) || slides.length === 0 || !language) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 },
       );
     }
 
+    // Check if presenter notes already exist in the database
+    const existingPresentation = await db.presentation.findUnique({
+      where: { id: presentationId },
+    });
+
+    // If presenter notes exist and match the number of slides, return them
+    const existingNotes = (existingPresentation as { presenterNotes?: unknown })?.presenterNotes as Array<{
+      summary: string;
+      fullNotes: string;
+    }> | undefined;
+    
+    if (existingNotes && Array.isArray(existingNotes) && existingNotes.length === slides.length) {
+      console.log("Returning existing presenter notes from database");
+      return NextResponse.json({ notes: existingNotes });
+    }
+
+    // Generate new presenter notes
     const notes = await generatePresenterNotes(slides, language, presentationTitle ?? undefined);
+
+    // Save presenter notes to the database
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (db.presentation.update as any)({
+        where: { id: presentationId },
+        data: {
+          presenterNotes: notes as unknown as InputJsonValue,
+        },
+      });
+      console.log("Presenter notes saved to database");
+    } catch (dbError) {
+      console.error("Failed to save presenter notes to database:", dbError);
+      // Don't fail the request if saving fails - still return the notes
+    }
 
     return NextResponse.json({ notes });
   } catch (error) {
