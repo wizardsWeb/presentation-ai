@@ -106,7 +106,7 @@ export function ThemeCreator({ children }: { children?: ReactNode }) {
           button: "0 1px 2px rgba(0,0,0,0.03)",
         },
       });
-    } else if (watchedThemeBase && watchedThemeBase in themes) {
+    } else if (watchedThemeBase) {
       const selectedTheme = themes[watchedThemeBase];
       setValue("colors", { ...selectedTheme.colors });
       setValue("fonts", { ...selectedTheme.fonts });
