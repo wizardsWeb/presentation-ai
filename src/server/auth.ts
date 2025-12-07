@@ -40,14 +40,64 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
   callbacks: {
     async jwt({ token, user, trigger, session }) {
       if (user) {
-        token.id = user.id;
-        token.hasAccess = user.hasAccess;
-        token.name = user.name;
-        token.image = user.image;
-        token.picture = user.image;
+        // Look up the user by email to get the correct database ID
+        try {
+          const db = await getDb();
+          if (db && user.email) {
+            const dbUser = await db.user.findUnique({
+              where: { email: user.email },
+              select: { id: true, hasAccess: true, role: true, name: true, image: true },
+            });
+            
+            if (dbUser) {
+              // Use the database user ID, not the OAuth-generated one
+              token.id = dbUser.id;
+              token.hasAccess = dbUser.hasAccess;
+              token.role = dbUser.role;
+              token.isAdmin = dbUser.role === "ADMIN";
+              token.name = dbUser.name ?? user.name;
+              token.image = dbUser.image ?? user.image;
+              token.picture = dbUser.image ?? user.image;
+            } else {
+              // New user - create them in the database
+              const newUser = await db.user.create({
+                data: {
+                  email: user.email,
+                  name: user.name,
+                  image: user.image,
+                  hasAccess: false,
+                  role: "USER",
+                },
+              });
+              token.id = newUser.id;
+              token.hasAccess = false;
+              token.role = "USER";
+              token.isAdmin = false;
+              token.name = user.name;
+              token.image = user.image;
+              token.picture = user.image;
+            }
+          } else {
+            // Fallback if db is not available
+            token.id = user.id;
+            token.hasAccess = user.hasAccess;
+            token.role = user.role;
+            token.isAdmin = user.role === "ADMIN";
+            token.name = user.name;
+            token.image = user.image;
+            token.picture = user.image;
+          }
+        } catch (error) {
+          console.error("Error looking up user in JWT callback:", error);
+          token.id = user.id;
+          token.hasAccess = user.hasAccess ?? false;
+          token.role = user.role ?? "USER";
+          token.isAdmin = false;
+          token.name = user.name;
+          token.image = user.image;
+          token.picture = user.image;
+        }
         token.location = (user as Session["user"]).location;
-        token.role = user.role;
-        token.isAdmin = user.role === "ADMIN";
       }
 
       // Handle updates

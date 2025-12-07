@@ -17,6 +17,10 @@ export async function fetchPresentations(page = 0) {
   const session = await auth();
   const userId = session?.user.id;
 
+  // Debug logging
+  console.log("[fetchPresentations] Session user ID:", userId);
+  console.log("[fetchPresentations] Session:", JSON.stringify(session, null, 2));
+
   if (!userId) {
     return {
       items: [],

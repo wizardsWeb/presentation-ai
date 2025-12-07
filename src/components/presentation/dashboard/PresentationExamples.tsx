@@ -167,7 +167,6 @@ export function PresentationExamples() {
     enabled: true,
   });
 
-  console.log(presentationsData);
   if (
     (presentationsData as InfiniteData<Presentation>)?.pages[0]?.items?.length
   )
