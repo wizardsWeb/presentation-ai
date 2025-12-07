@@ -1,20 +1,41 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 "use client";
 
 import {
   useEditorRef,
   useEditorSelector,
-  withRef,
 } from "@udecode/plate-common/react";
+import { forwardRef } from "react";
 import { Redo2Icon, Undo2Icon } from "lucide-react";
 
 import { ToolbarButton } from "./toolbar";
 
-export const RedoToolbarButton = withRef<typeof ToolbarButton>((props, ref) => {
+// Type definition for the editor with history
+interface EditorWithHistory {
+  history?: {
+    redos?: unknown[];
+    undos?: unknown[];
+  };
+}
+
+// Type-safe selector functions
+function selectRedoDisabled(editor: unknown): boolean {
+  const editorWithHistory = editor as EditorWithHistory;
+  return (editorWithHistory.history?.redos?.length ?? 0) === 0;
+}
+
+function selectUndoDisabled(editor: unknown): boolean {
+  const editorWithHistory = editor as EditorWithHistory;
+  return (editorWithHistory.history?.undos?.length ?? 0) === 0;
+}
+
+export const RedoToolbarButton = forwardRef<
+  HTMLButtonElement,
+  React.ComponentPropsWithoutRef<typeof ToolbarButton>
+>((props, ref) => {
   const editor = useEditorRef();
-  const disabled = useEditorSelector(
-    (editor) => editor.history.redos.length === 0,
-    [],
-  );
+  const selectorResult = useEditorSelector(selectRedoDisabled, []);
+  const disabled = Boolean(selectorResult);
 
   return (
     <ToolbarButton
@@ -29,13 +50,15 @@ export const RedoToolbarButton = withRef<typeof ToolbarButton>((props, ref) => {
     </ToolbarButton>
   );
 });
+RedoToolbarButton.displayName = "RedoToolbarButton";
 
-export const UndoToolbarButton = withRef<typeof ToolbarButton>((props, ref) => {
+export const UndoToolbarButton = forwardRef<
+  HTMLButtonElement,
+  React.ComponentPropsWithoutRef<typeof ToolbarButton>
+>((props, ref) => {
   const editor = useEditorRef();
-  const disabled = useEditorSelector(
-    (editor) => editor.history.undos.length === 0,
-    [],
-  );
+  const selectorResult = useEditorSelector(selectUndoDisabled, []);
+  const disabled = Boolean(selectorResult);
 
   return (
     <ToolbarButton
@@ -50,3 +73,4 @@ export const UndoToolbarButton = withRef<typeof ToolbarButton>((props, ref) => {
     </ToolbarButton>
   );
 });
+UndoToolbarButton.displayName = "UndoToolbarButton";

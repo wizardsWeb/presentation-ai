@@ -106,7 +106,7 @@ export function ThemeCreator({ children }: { children?: ReactNode }) {
           button: "0 1px 2px rgba(0,0,0,0.03)",
         },
       });
-    } else {
+    } else if (watchedThemeBase && watchedThemeBase in themes) {
       const selectedTheme = themes[watchedThemeBase];
       setValue("colors", { ...selectedTheme.colors });
       setValue("fonts", { ...selectedTheme.fonts });
@@ -338,9 +338,9 @@ export function ThemeCreator({ children }: { children?: ReactNode }) {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     {Object.entries(
-                      activeColorTab === "light"
+                      (activeColorTab === "light"
                         ? watch("colors.light")
-                        : watch("colors.dark"),
+                        : watch("colors.dark")) ?? {},
                     ).map(([key]) => (
                       <Controller
                         key={key}
@@ -451,9 +451,12 @@ export function ThemeCreator({ children }: { children?: ReactNode }) {
             {/* Right Side - Preview */}
             <div className="grid w-1/2 place-items-center overflow-y-auto p-6">
               <ThemePreview
-                colors={watch("colors")}
-                fonts={watch("fonts")}
-                borderRadius={watch("borderRadius")}
+                colors={watch("colors") ?? {
+                  light: { primary: "#3B82F6", secondary: "#6B7280", accent: "#60A5FA", background: "#FFFFFF", text: "#1F2937", heading: "#111827", muted: "#9CA3AF" },
+                  dark: { primary: "#60A5FA", secondary: "#9CA3AF", accent: "#93C5FD", background: "#111827", text: "#F9FAFB", heading: "#FFFFFF", muted: "#6B7280" }
+                }}
+                fonts={watch("fonts") ?? { heading: "Inter, sans-serif", body: "Inter, sans-serif" }}
+                borderRadius={watch("borderRadius") ?? "0.5rem"}
                 logoPreview={logoPreview}
                 activeColorTab={activeColorTab}
               />

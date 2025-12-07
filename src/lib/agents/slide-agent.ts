@@ -64,14 +64,6 @@ const DEFAULT_CONFIG: AgentConfig = {
   minValidationScore: 7,
 };
 
-// LLM for content generation - optimized for maximum speed
-const contentModel = new ChatOpenAI({
-  modelName: "gpt-4o-mini",
-  temperature: 0.75,
-  maxTokens: 1000, // Minimal tokens for speed
-  timeout: 20000, // 20 second timeout
-});
-
 // Research cache to avoid duplicate searches
 const researchCache = new Map<string, string>();
 
@@ -169,10 +161,6 @@ OUTPUT ONLY:
 
 const layouts = ["left", "right", "vertical"] as const;
 
-function getLayout(index: number): string {
-  return layouts[index % layouts.length] ?? "left";
-}
-
 function suggestLayout(slideIndex: number, previousLayouts: string[]): string {
   const lastLayout = previousLayouts[previousLayouts.length - 1];
   const availableLayouts = layouts.filter((l) => l !== lastLayout);
@@ -227,30 +215,6 @@ export async function batchResearchTopics(
   }
   
   return results;
-}
-
-/**
- * Retry wrapper for API calls - optimized for speed
- */
-async function withRetry<T>(
-  fn: () => Promise<T>,
-  maxRetries = 1, // Reduced retries for speed
-  delay = 300 // Shorter delay
-): Promise<T> {
-  let lastError: Error | null = null;
-  
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      return await fn();
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error));
-      if (attempt < maxRetries) {
-        await new Promise(resolve => setTimeout(resolve, delay));
-      }
-    }
-  }
-  
-  throw lastError;
 }
 
 /**

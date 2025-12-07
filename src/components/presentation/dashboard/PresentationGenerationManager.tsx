@@ -9,9 +9,6 @@ import { updatePresentation } from "@/app/_actions/presentation/presentationActi
 
 export function PresentationGenerationManager() {
   const {
-    numSlides,
-    language,
-    presentationInput,
     shouldStartOutlineGeneration,
     shouldStartPresentationGeneration,
     setIsGeneratingOutline,

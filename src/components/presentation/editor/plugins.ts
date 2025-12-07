@@ -2,7 +2,6 @@
 
 import { ParagraphPlugin } from "@udecode/plate-common/react";
 import { ImagePlugin } from "@udecode/plate-media/react";
-import { MarkdownPlugin } from "@udecode/plate-markdown";
 import { HeadingPlugin } from "@udecode/plate-heading/react";
 import { BlockquotePlugin } from "@udecode/plate-block-quote/react";
 import {
