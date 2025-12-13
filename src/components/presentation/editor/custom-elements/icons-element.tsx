@@ -5,6 +5,8 @@ import { cn, withRef } from "@udecode/cn";
 import { type TElement } from "@udecode/plate-common";
 import { createPlatePlugin } from "@udecode/plate-core/react";
 import { PlateElement } from "@/components/text-editor/plate-ui/plate-element";
+import { motion } from "framer-motion";
+import { usePresentationAnimations } from "@/hooks/presentation/usePresentationAnimations";
 
 // Import IconItem and constants
 import { IconItem } from "./icon-item";
@@ -19,6 +21,7 @@ export const IconsElement = withRef<typeof PlateElement>(
   ({ element, children, className, ...props }, ref) => {
     const childrenArray = React.Children.toArray(children as ReactNode);
     const items = element.children;
+    const { variants, animationProps } = usePresentationAnimations();
 
     // Determine number of columns based on item count
     const getColumnClass = () => {
@@ -35,13 +38,17 @@ export const IconsElement = withRef<typeof PlateElement>(
         className={cn("my-6", className)}
         {...props}
       >
-        <div className={cn("grid gap-6", getColumnClass())}>
+        <motion.div
+          className={cn("grid gap-6", getColumnClass())}
+          variants={variants.iconsContainer}
+          {...animationProps}
+        >
           {childrenArray.map((child, index) => (
             <IconItem key={index} element={items[index] as TElement}>
               {child}
             </IconItem>
           ))}
-        </div>
+        </motion.div>
       </PlateElement>
     );
   },

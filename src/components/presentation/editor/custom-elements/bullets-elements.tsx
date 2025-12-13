@@ -5,6 +5,8 @@ import { cn, withRef } from "@udecode/cn";
 import { type TElement } from "@udecode/plate-common";
 import { createPlatePlugin } from "@udecode/plate-core/react";
 import { PlateElement } from "@/components/text-editor/plate-ui/plate-element";
+import { motion } from "framer-motion";
+import { usePresentationAnimations } from "@/hooks/presentation/usePresentationAnimations";
 
 // Import BulletItem and constants
 import { BulletItem } from "./bullet-item";
@@ -19,6 +21,7 @@ export const BulletsElement = withRef<typeof PlateElement>(
   ({ element, children, className, ...props }, ref) => {
     const childrenArray = React.Children.toArray(children as ReactNode);
     const items = element.children;
+    const { variants, animationProps } = usePresentationAnimations();
 
     // Determine number of columns based on item count
     const getColumnClass = () => {
@@ -35,8 +38,12 @@ export const BulletsElement = withRef<typeof PlateElement>(
         className={cn("my-6", className)}
         {...props}
       >
-        {/* Grid layout with adaptive columns */}
-        <div className={cn("grid gap-6", getColumnClass())}>
+        {/* Grid layout with adaptive columns and animation */}
+        <motion.div
+          className={cn("grid gap-6", getColumnClass())}
+          variants={variants.bulletContainer}
+          {...animationProps}
+        >
           {childrenArray.map((child, index) => (
             <BulletItem
               key={index}
@@ -46,7 +53,7 @@ export const BulletsElement = withRef<typeof PlateElement>(
               {child}
             </BulletItem>
           ))}
-        </div>
+        </motion.div>
       </PlateElement>
     );
   },

@@ -16,6 +16,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/text-editor/plate-ui/tooltip";
+import { motion } from "framer-motion";
+import { usePresentationAnimations } from "@/hooks/presentation/usePresentationAnimations";
 import { CYCLE_ITEM_ELEMENT } from "../lib";
 
 // CycleItem component for individual items in the cycle
@@ -32,6 +34,7 @@ export const CycleItem = ({
   const readOnly = useReadOnly();
   const { useOption } = useEditorPlugin(BlockSelectionPlugin);
   const isSelectionAreaVisible = useOption("isSelectionAreaVisible");
+  const { variants } = usePresentationAnimations();
 
   // Add draggable functionality
   const { isDragging, previewRef, handleRef } = useDraggable({
@@ -64,13 +67,14 @@ export const CycleItem = ({
   };
 
   return (
-    <div
+    <motion.div
       ref={previewRef}
       className={cn(
         "group/cycle-item relative mb-6",
         isDragging && "opacity-50",
         dropLine && "drop-target",
       )}
+      variants={variants.cycleItem}
     >
       {/* Drop target indicator lines */}
       {!readOnly && !isSelectionAreaVisible && dropLine && (
@@ -114,7 +118,7 @@ export const CycleItem = ({
         {/* Content area */}
         <div className="mt-2">{children}</div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

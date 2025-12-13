@@ -16,6 +16,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/text-editor/plate-ui/tooltip";
+import { motion } from "framer-motion";
+import { usePresentationAnimations } from "@/hooks/presentation/usePresentationAnimations";
 import { STAIR_ITEM_ELEMENT } from "../lib";
 
 // StairItem component for individual items in the staircase
@@ -33,6 +35,7 @@ export const StairItem = ({
   const readOnly = useReadOnly();
   const { useOption } = useEditorPlugin(BlockSelectionPlugin);
   const isSelectionAreaVisible = useOption("isSelectionAreaVisible");
+  const { variants } = usePresentationAnimations();
 
   // Add draggable functionality
   const { isDragging, previewRef, handleRef } = useDraggable({
@@ -65,13 +68,14 @@ export const StairItem = ({
   };
 
   return (
-    <div
+    <motion.div
       ref={previewRef}
       className={cn(
         "group/stair-item relative mb-2 w-full",
         isDragging && "opacity-50",
         dropLine && "drop-target",
       )}
+      variants={variants.stairItem}
     >
       {/* Drop target indicator lines */}
       {!readOnly && !isSelectionAreaVisible && dropLine && (
@@ -116,7 +120,7 @@ export const StairItem = ({
         {/* Content area */}
         <div className="flex flex-1 items-center">{children}</div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

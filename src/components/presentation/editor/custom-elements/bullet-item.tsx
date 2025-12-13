@@ -16,6 +16,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/text-editor/plate-ui/tooltip";
+import { motion } from "framer-motion";
+import { usePresentationAnimations } from "@/hooks/presentation/usePresentationAnimations";
 import { BULLET_ELEMENT } from "../lib";
 
 // BulletItem component for numbered blocks with content
@@ -31,6 +33,7 @@ export const BulletItem = ({
   const readOnly = useReadOnly();
   const { useOption } = useEditorPlugin(BlockSelectionPlugin);
   const isSelectionAreaVisible = useOption("isSelectionAreaVisible");
+  const { variants } = usePresentationAnimations();
 
   // Add draggable functionality
   const { isDragging, previewRef, handleRef } = useDraggable({
@@ -52,13 +55,14 @@ export const BulletItem = ({
   });
 
   return (
-    <div
+    <motion.div
       ref={previewRef}
       className={cn(
         "group/bullet-item relative",
         isDragging && "opacity-50",
         dropLine && "drop-target",
       )}
+      variants={variants.bulletItem}
     >
       {/* Drop target indicator lines */}
       {!readOnly && !isSelectionAreaVisible && dropLine && (
@@ -87,21 +91,22 @@ export const BulletItem = ({
 
       {/* The bullet item layout with numbered block and content */}
       <div className="flex items-start">
-        {/* Numbered square/block */}
-        <div
+        {/* Numbered square/block with animation */}
+        <motion.div
           className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-md bg-primary text-xl font-bold text-primary-foreground"
           style={{
             backgroundColor: "var(--presentation-primary)",
             color: "var(--presentation-background)",
           }}
+          variants={variants.bulletBadge}
         >
           {index + 1}
-        </div>
+        </motion.div>
 
         {/* Content area */}
         <div className="ml-4 flex-1">{children}</div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

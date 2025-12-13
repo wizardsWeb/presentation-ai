@@ -5,6 +5,8 @@ import { cn, withRef } from "@udecode/cn";
 import { type TElement } from "@udecode/plate-common";
 import { createPlatePlugin } from "@udecode/plate-core/react";
 import { PlateElement } from "@/components/text-editor/plate-ui/plate-element";
+import { motion } from "framer-motion";
+import { usePresentationAnimations } from "@/hooks/presentation/usePresentationAnimations";
 
 // Import CycleItem and constants
 import { CycleItem } from "./cycle-item";
@@ -21,6 +23,7 @@ export const CycleElement = withRef<typeof PlateElement>(
     const items = element.children;
     const totalItems = items.length;
     const hasOddItems = totalItems % 2 !== 0;
+    const { variants, animationProps } = usePresentationAnimations();
 
     return (
       <PlateElement
@@ -29,11 +32,17 @@ export const CycleElement = withRef<typeof PlateElement>(
         className={cn("relative my-8", className)}
         {...props}
       >
-        {/* Three-column grid layout for content */}
-        <div className="mx-auto grid grid-cols-3 gap-4 px-12">
-          {/* Central SVG wheel */}
-
-          <div className="relative col-start-2 row-span-2 row-start-2 mx-auto h-64 w-64">
+        {/* Three-column grid layout for content with animation */}
+        <motion.div
+          className="mx-auto grid grid-cols-3 gap-4 px-12"
+          variants={variants.cycleContainer}
+          {...animationProps}
+        >
+          {/* Central SVG wheel with animation */}
+          <motion.div
+            className="relative col-start-2 row-span-2 row-start-2 mx-auto h-64 w-64"
+            variants={variants.cycleWheel}
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               data-name="Layer 1"
@@ -49,7 +58,7 @@ export const CycleElement = withRef<typeof PlateElement>(
               <path d="M15.01839,60.68555,27.50026,62.2774a25.59173,25.59173,0,0,1-.01013-24.53686l-4.86335-11.6048L10.19136,27.72192a45.49238,45.49238,0,0,0-.01764,44.52582Z" />
               <path d="M41.76253,85.6377l7.62164-10.01563A25.6444,25.6444,0,0,1,28.13258,63.36646l-12.48529-1.593L10.801,73.33752a45.65051,45.65051,0,0,0,38.5589,22.28394Z" />
             </svg>
-          </div>
+          </motion.div>
 
           {childrenArray.map((child, index) => {
             // For odd total count, make first item (index 0) start from middle column
@@ -78,7 +87,7 @@ export const CycleElement = withRef<typeof PlateElement>(
               </div>
             );
           })}
-        </div>
+        </motion.div>
       </PlateElement>
     );
   },

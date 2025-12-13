@@ -5,6 +5,8 @@ import { cn, withRef } from "@udecode/cn";
 import { type TDescendant, type TElement } from "@udecode/plate-common";
 import { createPlatePlugin } from "@udecode/plate-core/react";
 import { PlateElement } from "@/components/text-editor/plate-ui/plate-element";
+import { motion } from "framer-motion";
+import { usePresentationAnimations } from "@/hooks/presentation/usePresentationAnimations";
 
 // Import draggable item components
 import { PyramidItem } from "./pyramid-item";
@@ -29,9 +31,14 @@ const PyramidVisualization = ({
 }) => {
   const childrenArray = React.Children.toArray(children);
   const totalItems = items.length;
+  const { variants, animationProps } = usePresentationAnimations();
 
   return (
-    <div className="my-8 flex w-full flex-col items-center gap-2">
+    <motion.div
+      className="my-8 flex w-full flex-col items-center gap-2"
+      variants={variants.pyramidContainer}
+      {...animationProps}
+    >
       {childrenArray.map((child, index) => (
         <PyramidItem
           key={index}
@@ -42,7 +49,7 @@ const PyramidVisualization = ({
           {child}
         </PyramidItem>
       ))}
-    </div>
+    </motion.div>
   );
 };
 
@@ -55,15 +62,20 @@ const ArrowVisualization = ({
   children: React.ReactNode;
 }) => {
   const childrenArray = React.Children.toArray(children);
+  const { variants, animationProps } = usePresentationAnimations();
 
   return (
-    <div className="my-4 mb-8 flex w-full flex-col overflow-visible">
+    <motion.div
+      className="my-4 mb-8 flex w-full flex-col overflow-visible"
+      variants={variants.arrowsContainer}
+      {...animationProps}
+    >
       {childrenArray.map((child, index) => (
         <ArrowItem key={index} index={index} element={items[index] as TElement}>
           {child}
         </ArrowItem>
       ))}
-    </div>
+    </motion.div>
   );
 };
 
@@ -76,14 +88,23 @@ const TimelineVisualization = ({
   children: React.ReactNode;
 }) => {
   const childrenArray = React.Children.toArray(children);
+  const { variants, animationProps } = usePresentationAnimations();
 
   return (
     <div className="relative mx-4">
-      {/* Vertical line */}
-      <div className="absolute bottom-0 left-4 top-0 w-0.5 bg-gray-300"></div>
+      {/* Vertical line with animation */}
+      <motion.div
+        className="absolute bottom-0 left-4 top-0 w-0.5 bg-gray-300"
+        variants={variants.timelineLine}
+        style={{ originY: 0 }}
+      />
 
-      {/* Events */}
-      <div className="space-y-8">
+      {/* Events with staggered animation */}
+      <motion.div
+        className="space-y-8"
+        variants={variants.timelineContainer}
+        {...animationProps}
+      >
         {childrenArray.map((child, index) => (
           <TimelineItem
             key={index}
@@ -93,7 +114,7 @@ const TimelineVisualization = ({
             {child}
           </TimelineItem>
         ))}
-      </div>
+      </motion.div>
     </div>
   );
 };

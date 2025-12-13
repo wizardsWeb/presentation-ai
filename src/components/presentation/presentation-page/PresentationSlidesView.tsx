@@ -18,6 +18,7 @@ import { SlideContainer } from "./SlideContainer";
 import PresentationEditor from "../editor/presentation-editor";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AgentProgress } from "../dashboard/AgentProgress";
+import { AnimatePresence } from "framer-motion";
 
 // Skeleton slide component for loading state
 function SlideSkeleton({ index }: { index: number }) {
@@ -125,51 +126,53 @@ export const PresentationSlidesView = ({
       >
       <SortableContext items={items} strategy={verticalListSortingStrategy}>
         <DndProvider backend={HTML5Backend}>
-          {items.map((slide, index) => (
-            <div
-              key={`slide-${slide.id}-${index}`}
-              className={`slide-wrapper slide-wrapper-${index}`}
-            >
-              <SlideContainer index={index} id={slide.id}>
-                <div
-                  className={cn(
-                    `slide-container-${index}`,
-                    isPresenting && "h-screen w-screen"
-                  )}
-                >
-                  <PresentationEditor
-                    initialContent={slide}
+          <AnimatePresence mode="wait">
+            {items.map((slide, index) => (
+              <div
+                key={`slide-${slide.id}-${index}`}
+                className={`slide-wrapper slide-wrapper-${index}`}
+              >
+                <SlideContainer index={index} id={slide.id}>
+                  <div
                     className={cn(
-                      "min-h-[300px] rounded-md border",
+                      `slide-container-${index}`,
                       isPresenting && "h-screen w-screen"
                     )}
-                    id={slide.id}
-                    autoFocus={index === currentSlideIndex}
-                    slideIndex={index}
-                    onChange={(value) => handleSlideChange(value, index)}
-                    isGenerating={isGeneratingPresentation}
-                    readOnly={isPresenting}
-                  />
-                </div>
-              </SlideContainer>
+                  >
+                    <PresentationEditor
+                      initialContent={slide}
+                      className={cn(
+                        "min-h-[300px] rounded-md border",
+                        isPresenting && "h-screen w-screen"
+                      )}
+                      id={slide.id}
+                      autoFocus={index === currentSlideIndex}
+                      slideIndex={index}
+                      onChange={(value) => handleSlideChange(value, index)}
+                      isGenerating={isGeneratingPresentation}
+                      readOnly={isPresenting}
+                    />
+                  </div>
+                </SlideContainer>
 
-              {/* Create preview directly in the markup */}
-              <SlidePreviewRenderer slideIndex={index} slideId={slide.id}>
-                <PresentationEditor
-                  initialContent={slide}
-                  className="min-h-[300px] border"
-                  id={`preview-${slide.id}`}
-                  isPreview={true}
-                  readOnly={true}
-                  slideIndex={index}
-                  onChange={() => {
-                    // Test
-                  }}
-                  isGenerating={isGeneratingPresentation}
-                />
-              </SlidePreviewRenderer>
-            </div>
-          ))}
+                {/* Create preview directly in the markup */}
+                <SlidePreviewRenderer slideIndex={index} slideId={slide.id}>
+                  <PresentationEditor
+                    initialContent={slide}
+                    className="min-h-[300px] border"
+                    id={`preview-${slide.id}`}
+                    isPreview={true}
+                    readOnly={true}
+                    slideIndex={index}
+                    onChange={() => {
+                      // Test
+                    }}
+                    isGenerating={isGeneratingPresentation}
+                  />
+                </SlidePreviewRenderer>
+              </div>
+            ))}
+          </AnimatePresence>
 
           {/* Skeleton slides for remaining expected slides */}
           {skeletonCount > 0 &&

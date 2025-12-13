@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { type Themes, type ThemeProperties } from "@/lib/presentation/themes";
 import { type ImageModelList } from "@/app/_actions/image/generate";
 import { type PlateSlide } from "@/components/presentation/utils/parser";
+import { type SlideTransitionType } from "@/lib/presentation/animations";
 
 export type GenerationMode = "quick" | "research";
 
@@ -32,6 +33,7 @@ interface PresentationState {
   savingStatus: "idle" | "saving" | "saved";
   isPresenting: boolean;
   currentSlideIndex: number;
+  slideTransition: SlideTransitionType;
   isThemeCreatorOpen: boolean;
   imageGenerationModelOpen: boolean;
 
@@ -77,6 +79,7 @@ interface PresentationState {
   setSavingStatus: (status: "idle" | "saving" | "saved") => void;
   setIsPresenting: (isPresenting: boolean) => void;
   setCurrentSlideIndex: (index: number) => void;
+  setSlideTransition: (transition: SlideTransitionType) => void;
   nextSlide: () => void;
   previousSlide: () => void;
 
@@ -121,6 +124,7 @@ export const usePresentationState = create<PresentationState>((set) => ({
   savingStatus: "idle",
   isPresenting: false,
   currentSlideIndex: 0,
+  slideTransition: "luxury",
   isThemeCreatorOpen: false,
   imageGenerationModelOpen: false,
 
@@ -165,6 +169,7 @@ export const usePresentationState = create<PresentationState>((set) => ({
   setSavingStatus: (status) => set({ savingStatus: status }),
   setIsPresenting: (isPresenting) => set({ isPresenting }),
   setCurrentSlideIndex: (index) => set({ currentSlideIndex: index }),
+  setSlideTransition: (transition) => set({ slideTransition: transition }),
   nextSlide: () =>
     set((state) => ({
       currentSlideIndex: Math.min(

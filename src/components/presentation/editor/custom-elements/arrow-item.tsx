@@ -7,6 +7,8 @@ import { GripVertical } from "lucide-react";
 import { useReadOnly } from "slate-react";
 import { useEditorPlugin } from "@udecode/plate/react";
 import { BlockSelectionPlugin } from "@udecode/plate-selection/react";
+import { motion } from "framer-motion";
+import { usePresentationAnimations } from "@/hooks/presentation/usePresentationAnimations";
 
 import { Button } from "@/components/text-editor/plate-ui/button";
 import {
@@ -31,6 +33,7 @@ export const ArrowItem = ({
   const readOnly = useReadOnly();
   const { useOption } = useEditorPlugin(BlockSelectionPlugin);
   const isSelectionAreaVisible = useOption("isSelectionAreaVisible");
+  const { variants } = usePresentationAnimations();
 
   // Add draggable functionality
   const { isDragging, previewRef, handleRef } = useDraggable({
@@ -52,13 +55,14 @@ export const ArrowItem = ({
   });
 
   return (
-    <div
+    <motion.div
       ref={previewRef}
       className={cn(
         "group/arrow-item relative mb-2 ml-4 flex h-24 gap-2",
         isDragging && "opacity-50",
         dropLine && "drop-target",
       )}
+      variants={variants.arrowItem}
     >
       {/* Drop target indicator lines */}
       {!readOnly && !isSelectionAreaVisible && dropLine && (
@@ -97,7 +101,7 @@ export const ArrowItem = ({
 
       {/* Content column */}
       <div className="flex flex-1 items-center p-4">{children}</div>
-    </div>
+    </motion.div>
   );
 };
 

@@ -16,6 +16,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/text-editor/plate-ui/tooltip";
+import { motion } from "framer-motion";
+import { usePresentationAnimations } from "@/hooks/presentation/usePresentationAnimations";
 import { ICON_ITEM_ELEMENT } from "../lib";
 
 // IconItem component for individual items in the icons list
@@ -29,6 +31,7 @@ export const IconItem = ({
   const readOnly = useReadOnly();
   const { useOption } = useEditorPlugin(BlockSelectionPlugin);
   const isSelectionAreaVisible = useOption("isSelectionAreaVisible");
+  const { variants } = usePresentationAnimations();
 
   // Add draggable functionality
   const { isDragging, previewRef, handleRef } = useDraggable({
@@ -50,13 +53,14 @@ export const IconItem = ({
   });
 
   return (
-    <div
+    <motion.div
       ref={previewRef}
       className={cn(
         "group/icon-item relative w-full",
         isDragging && "opacity-50",
         dropLine && "drop-target",
       )}
+      variants={variants.iconItem}
     >
       {/* Drop target indicator lines */}
       {!readOnly && !isSelectionAreaVisible && dropLine && (
@@ -87,7 +91,7 @@ export const IconItem = ({
       <div className="w-full [&>[data-slate-node=element]]:grid [&>[data-slate-node=element]]:grid-cols-[auto_1fr] [&>[data-slate-node=element]]:gap-[0px_1rem] [&>[data-slate-node=element]_*]:col-start-2 [&>[data-slate-node=element]_div]:col-start-1 [&>[data-slate-node=element]_div]:row-span-2 [&>[data-slate-node=element]_div]:flex [&>[data-slate-node=element]_div]:items-center [&>[data-slate-node=element]_div]:justify-center [&>[data-slate-node=element]_div]:self-center">
         {children}
       </div>
-    </div>
+    </motion.div>
   );
 };
 

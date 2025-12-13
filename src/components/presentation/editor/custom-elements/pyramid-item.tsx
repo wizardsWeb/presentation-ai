@@ -15,6 +15,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/text-editor/plate-ui/tooltip";
+import { motion } from "framer-motion";
+import { usePresentationAnimations } from "@/hooks/presentation/usePresentationAnimations";
 import { type TElement } from "@udecode/plate-common";
 import { VISUALIZATION_ITEM_ELEMENT } from "./visualization-item-plugin";
 
@@ -33,6 +35,7 @@ export const PyramidItem = ({
   const readOnly = useReadOnly();
   const { useOption } = useEditorPlugin(BlockSelectionPlugin);
   const isSelectionAreaVisible = useOption("isSelectionAreaVisible");
+  const { variants } = usePresentationAnimations();
 
   // Add draggable functionality
   const { isDragging, previewRef, handleRef } = useDraggable({
@@ -85,13 +88,14 @@ export const PyramidItem = ({
   const clipPath = calculateClipPath();
 
   return (
-    <div
+    <motion.div
       ref={previewRef}
       className={cn(
         "group/pyramid-item relative w-full",
         isDragging && "opacity-50",
         dropLine && "drop-target",
       )}
+      variants={variants.pyramidItem}
     >
       {/* Drop target indicator lines */}
       {!readOnly && !isSelectionAreaVisible && dropLine && (
@@ -146,7 +150,7 @@ export const PyramidItem = ({
           {children}
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

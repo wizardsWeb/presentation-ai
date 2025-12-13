@@ -21,6 +21,9 @@ import {
 import { SlideEditPopover } from "./SlideEditPopover";
 import { nanoid } from "nanoid";
 import { PresentModeHeader } from "./PresentModeHeader";
+import { motion, AnimatePresence } from "framer-motion";
+import { usePresentationAnimations } from "@/hooks/presentation/usePresentationAnimations";
+import { getSlideTransition } from "@/lib/presentation/animations";
 
 interface SlideContainerProps {
   children: React.ReactNode;
@@ -43,7 +46,13 @@ export function SlideContainer({
     currentSlideIndex,
     shouldShowExitHeader,
     setCurrentSlideIndex,
+    slideTransition,
   } = usePresentationState();
+
+  const { reducedMotion } = usePresentationAnimations();
+  
+  // Get the premium slide transition based on user selection
+  const slideTransitionVariants = getSlideTransition(slideTransition);
 
   const currentSlide = slides[index];
   const {
@@ -84,8 +93,16 @@ export function SlideContainer({
     setSlides(updatedSlides);
   };
 
+  // Only show slide if it's the current one in presentation mode
+  const shouldShow = !isPresenting || index === currentSlideIndex;
+  if (!shouldShow) return null;
+
   return (
-    <div
+    <motion.div
+      key={id}
+      initial={isPresenting && !reducedMotion ? slideTransitionVariants.initial : false}
+      animate={isPresenting ? slideTransitionVariants.animate : "visible"}
+      exit={isPresenting ? slideTransitionVariants.exit : undefined}
       ref={setNodeRef}
       style={style}
       className={cn(
@@ -172,21 +189,21 @@ export function SlideContainer({
       {isPresenting && (
         <div className="absolute bottom-0.5 left-1 right-1 z-[1001]">
           <div className="flex h-1.5 w-full gap-1">
-            {slides.map((_, index) => (
+            {slides.map((_, slideIndex) => (
               <button
-                key={index}
+                key={slideIndex}
                 className={`h-full flex-1 rounded-full transition-all ${
-                  index === currentSlideIndex
+                  slideIndex === currentSlideIndex
                     ? "bg-primary shadow-sm"
                     : "bg-white/20 hover:bg-white/40"
                 }`}
-                onClick={() => setCurrentSlideIndex(index)}
-                aria-label={`Go to slide ${index + 1}`}
+                onClick={() => setCurrentSlideIndex(slideIndex)}
+                aria-label={`Go to slide ${slideIndex + 1}`}
               />
             ))}
           </div>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }

@@ -5,6 +5,8 @@ import { cn, withRef } from "@udecode/cn";
 import { type TElement } from "@udecode/plate-common";
 import { createPlatePlugin } from "@udecode/plate-core/react";
 import { PlateElement } from "@/components/text-editor/plate-ui/plate-element";
+import { motion } from "framer-motion";
+import { usePresentationAnimations } from "@/hooks/presentation/usePresentationAnimations";
 
 // Import StairItem and constants
 import { StairItem } from "./staircase-item";
@@ -20,6 +22,7 @@ export const StaircaseElement = withRef<typeof PlateElement>(
     const childrenArray = React.Children.toArray(children as ReactNode);
     const items = element.children;
     const totalItems = items.length;
+    const { variants, animationProps } = usePresentationAnimations();
 
     return (
       <PlateElement
@@ -28,7 +31,10 @@ export const StaircaseElement = withRef<typeof PlateElement>(
         className={cn("my-8", className)}
         {...props}
       >
-        <div>
+        <motion.div
+          variants={variants.staircaseContainer}
+          {...animationProps}
+        >
           {childrenArray.map((child, index) => (
             <StairItem
               key={index}
@@ -39,7 +45,7 @@ export const StaircaseElement = withRef<typeof PlateElement>(
               {child}
             </StairItem>
           ))}
-        </div>
+        </motion.div>
       </PlateElement>
     );
   },

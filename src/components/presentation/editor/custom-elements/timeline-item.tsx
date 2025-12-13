@@ -7,6 +7,8 @@ import { GripVertical } from "lucide-react";
 import { useReadOnly } from "slate-react";
 import { useEditorPlugin } from "@udecode/plate/react";
 import { BlockSelectionPlugin } from "@udecode/plate-selection/react";
+import { motion } from "framer-motion";
+import { usePresentationAnimations } from "@/hooks/presentation/usePresentationAnimations";
 
 import { Button } from "@/components/text-editor/plate-ui/button";
 import {
@@ -32,6 +34,7 @@ export const TimelineItem = ({
   const readOnly = useReadOnly();
   const { useOption } = useEditorPlugin(BlockSelectionPlugin);
   const isSelectionAreaVisible = useOption("isSelectionAreaVisible");
+  const { variants } = usePresentationAnimations();
 
   // Add draggable functionality
   const { isDragging, previewRef, handleRef } = useDraggable({
@@ -53,13 +56,14 @@ export const TimelineItem = ({
   });
 
   return (
-    <div
+    <motion.div
       ref={previewRef}
       className={cn(
         "group/timeline-item relative pl-12",
         isDragging && "opacity-50",
         dropLine && "drop-target",
       )}
+      variants={variants.timelineItem}
     >
       {/* Drop target indicator lines */}
       {!readOnly && !isSelectionAreaVisible && dropLine && (
@@ -86,16 +90,19 @@ export const TimelineItem = ({
         </div>
       )}
 
-      {/* Circle marker */}
-      <div className="absolute left-0 top-1 flex h-8 w-8 items-center justify-center rounded-full bg-blue-500 text-white">
+      {/* Circle marker with animation */}
+      <motion.div
+        className="absolute left-0 top-1 flex h-8 w-8 items-center justify-center rounded-full bg-blue-500 text-white"
+        variants={variants.timelineDot}
+      >
         {index + 1}
-      </div>
+      </motion.div>
 
       {/* Event content */}
       <div className="flex items-center rounded-lg p-4 pl-2 shadow-sm">
         {children}
       </div>
-    </div>
+    </motion.div>
   );
 };
 
