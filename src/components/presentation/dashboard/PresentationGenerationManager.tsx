@@ -1,11 +1,23 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { useCompletion } from "@ai-sdk/react";
 import { toast } from "sonner";
 import { usePresentationState } from "@/states/presentation-state";
-import { SlideParser } from "../utils/parser";
+import { SlideParser, type PlateSlide } from "../utils/parser";
 import { updatePresentation } from "@/app/_actions/presentation/presentationActions";
+import { nanoid } from "nanoid";
+
+// YouTube video search response type
+interface YouTubeSearchResult {
+  success: boolean;
+  video?: {
+    videoId: string;
+    title: string;
+    channelTitle: string;
+    thumbnail: string;
+  };
+}
 
 export function PresentationGenerationManager() {
   const {
@@ -18,6 +30,8 @@ export function PresentationGenerationManager() {
     setOutline,
     setSlides,
     setIsGeneratingPresentation,
+    setYoutubeVideo,
+    setIsSearchingYouTube,
   } = usePresentationState();
 
   // Create a ref for the streaming parser to persist between renders
@@ -27,12 +41,113 @@ export function PresentationGenerationManager() {
   const slidesRafIdRef = useRef<number | null>(null);
   const outlineRafIdRef = useRef<number | null>(null);
 
+  // Track YouTube search state
+  const youtubeVideoRef = useRef<YouTubeSearchResult["video"] | null>(null);
+  const videoSlideInserted = useRef(false);
+
   // Create buffer refs to store the latest content
   // Note: The types should match what setOutline and setSlides expect
   const slidesBufferRef = useRef<ReturnType<
     SlideParser["getAllSlides"]
   > | null>(null);
   const outlineBufferRef = useRef<string[] | null>(null);
+
+  // Create a YouTube video slide - defined first so it can be used by searchYouTubeVideo
+  const createVideoSlide = useCallback((video: NonNullable<YouTubeSearchResult["video"]>): PlateSlide => {
+    return {
+      id: nanoid(),
+      layoutType: "vertical",
+      content: [
+        {
+          id: nanoid(),
+          type: "h1",
+          children: [{ text: "Video Overview" }],
+        },
+        {
+          id: nanoid(),
+          type: "p",
+          children: [{ text: `Watch this video to learn more about the topic:` }],
+        },
+        {
+          id: nanoid(),
+          type: "youtube",
+          videoId: video.videoId,
+          title: video.title,
+          channelTitle: video.channelTitle,
+          thumbnail: video.thumbnail,
+          children: [{ text: "" }],
+        },
+        {
+          id: nanoid(),
+          type: "p",
+          children: [{ text: `Source: ${video.channelTitle}` }],
+        },
+      ],
+    };
+  }, []);
+
+  // Search YouTube for a relevant video - runs completely independently
+  // When video is found, it will be inserted into slides via a separate effect
+  const searchYouTubeVideo = useCallback(async (topic: string, language: string) => {
+    try {
+      setIsSearchingYouTube(true);
+      const response = await fetch("/api/youtube/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topic, language }),
+      });
+      
+      if (!response.ok) {
+        console.warn("YouTube search failed:", response.status);
+        return null;
+      }
+      
+      const result = await response.json() as YouTubeSearchResult;
+      if (result.success && result.video) {
+        youtubeVideoRef.current = result.video;
+        setYoutubeVideo(result.video);
+        console.log("Found YouTube video:", result.video.title);
+        
+        // Immediately insert video slide if we already have slides
+        const currentSlides = usePresentationState.getState().slides;
+        if (currentSlides.length >= 1 && !videoSlideInserted.current) {
+          const videoSlide = createVideoSlide(result.video);
+          videoSlideInserted.current = true;
+          
+          // Insert at position 1 (after the first/title slide)
+          const newSlides = [...currentSlides];
+          newSlides.splice(1, 0, videoSlide);
+          setSlides(newSlides);
+          console.log("Inserted YouTube video slide at position 2 (async)");
+        }
+        
+        return result.video;
+      }
+      return null;
+    } catch (error) {
+      console.error("YouTube search error:", error);
+      return null;
+    } finally {
+      setIsSearchingYouTube(false);
+    }
+  }, [setYoutubeVideo, setIsSearchingYouTube, createVideoSlide, setSlides]);
+
+  // Insert video slide at position 2 (after title slide)
+  const insertVideoSlideIfAvailable = useCallback((slides: PlateSlide[]): PlateSlide[] => {
+    if (!youtubeVideoRef.current || videoSlideInserted.current || slides.length < 1) {
+      return slides;
+    }
+    
+    const videoSlide = createVideoSlide(youtubeVideoRef.current);
+    videoSlideInserted.current = true;
+    
+    // Insert at position 1 (after the first/title slide)
+    const newSlides = [...slides];
+    newSlides.splice(1, 0, videoSlide);
+    
+    console.log("Inserted YouTube video slide at position 2");
+    return newSlides;
+  }, [createVideoSlide]);
 
   // Function to update slides using requestAnimationFrame
   const updateSlidesWithRAF = (): void => {
@@ -231,14 +346,32 @@ export function PresentationGenerationManager() {
     useCompletion({
       api: "/api/presentation/generate",
       onFinish: (_prompt, _completion) => {
-        const { currentPresentationId, currentPresentationTitle, theme } =
+        const { currentPresentationId, currentPresentationTitle, theme, youtubeVideo, slides: currentSlides } =
           usePresentationState.getState();
         const parser = streamingParserRef.current;
         parser.reset();
         parser.parseChunk(_completion);
         parser.finalize();
         parser.clearAllGeneratingMarks();
-        const slides = parser.getAllSlides();
+        let slides = parser.getAllSlides();
+        
+        // If video was already inserted asynchronously, use current slides 
+        // but update the non-video slides with final parsed content
+        if (videoSlideInserted.current && currentSlides.length > 0) {
+          // Find video slide in current slides (it's at position 1)
+          const videoSlide = currentSlides.find(s => 
+            s.content?.some((c: { type?: string }) => c.type === "youtube")
+          );
+          
+          if (videoSlide) {
+            // Insert video slide at position 1 in the final slides
+            slides.splice(1, 0, videoSlide);
+          }
+        } else if (youtubeVideo && !videoSlideInserted.current && slides.length >= 1) {
+          // Insert YouTube video slide at position 2 if not already done
+          slides = insertVideoSlideIfAvailable(slides);
+        }
+        
         slidesBufferRef.current = slides;
 
         requestAnimationFrame(updateSlidesWithRAF);
@@ -249,6 +382,9 @@ export function PresentationGenerationManager() {
             content: { slides: slides },
             title: currentPresentationTitle ?? "",
             theme,
+            youtubeVideoId: youtubeVideo?.videoId,
+            youtubeVideoTitle: youtubeVideo?.title,
+            youtubeVideoChannel: youtubeVideo?.channelTitle,
           });
         }
 
@@ -305,10 +441,20 @@ export function PresentationGenerationManager() {
         currentPresentationTitle,
       } = usePresentationState.getState();
 
-      // Reset the parser before starting a new generation
+      // Reset the parser and YouTube state before starting a new generation
       streamingParserRef.current.reset();
+      youtubeVideoRef.current = null;
+      videoSlideInserted.current = false;
+      setYoutubeVideo(null);
 
       setIsGeneratingPresentation(true);
+
+      // Start YouTube search in parallel with presentation generation
+      // This runs concurrently, not blocking the main generation
+      const searchTopic = presentationInput ?? currentPresentationTitle ?? "";
+      if (searchTopic) {
+        void searchYouTubeVideo(searchTopic, language);
+      }
 
       // Start the RAF cycle for slide updates
       if (slidesRafIdRef.current === null) {
@@ -324,7 +470,7 @@ export function PresentationGenerationManager() {
         },
       });
     }
-  }, [shouldStartPresentationGeneration]);
+  }, [shouldStartPresentationGeneration, searchYouTubeVideo, setYoutubeVideo]);
 
   // Clean up RAF on unmount
   useEffect(() => {

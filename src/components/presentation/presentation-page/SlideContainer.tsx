@@ -21,7 +21,7 @@ import {
 import { SlideEditPopover } from "./SlideEditPopover";
 import { nanoid } from "nanoid";
 import { PresentModeHeader } from "./PresentModeHeader";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { usePresentationAnimations } from "@/hooks/presentation/usePresentationAnimations";
 import { getSlideTransition } from "@/lib/presentation/animations";
 

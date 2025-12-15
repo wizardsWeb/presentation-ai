@@ -9,6 +9,7 @@ import {
   formatSearchResultsForContext,
   quickValidate,
 } from "./tools";
+import { searchYouTubeVideo, type YouTubeVideoResult } from "@/lib/youtube/search";
 
 /**
  * Slide Generation Agent
@@ -25,11 +26,14 @@ export interface AgentEvent {
     | "slide_start"
     | "researching"
     | "research_complete"
+    | "youtube_search"     // NEW: YouTube search started
+    | "youtube_found"      // NEW: YouTube video found
     | "generating"
     | "token"           // NEW: Token streaming event
     | "validating"
     | "refining"
     | "slide_complete"
+    | "video_slide"        // NEW: Video slide generated
     | "agent_done"
     | "error";
   slideIndex?: number;
@@ -39,6 +43,7 @@ export interface AgentEvent {
   chunk?: string;       // NEW: For token streaming
   partial?: string;     // NEW: Accumulated content so far
   content?: string;     // NEW: Final content
+  video?: YouTubeVideoResult; // NEW: YouTube video data
 }
 
 export interface SlideGenerationResult {
@@ -53,6 +58,7 @@ export interface SlideGenerationResult {
 export interface AgentConfig {
   enableResearch: boolean;
   enableValidation: boolean;
+  enableYouTubeSearch: boolean;  // NEW: Enable YouTube video search
   maxRefinements: number;
   minValidationScore: number;
 }
@@ -60,6 +66,7 @@ export interface AgentConfig {
 const DEFAULT_CONFIG: AgentConfig = {
   enableResearch: true,
   enableValidation: false,
+  enableYouTubeSearch: true,     // NEW: Enabled by default
   maxRefinements: 0,
   minValidationScore: 7,
 };
@@ -407,7 +414,9 @@ export async function generateSlideWithAgent(
 /**
  * Generate all slides with the agent - PARALLEL STREAMING VERSION
  * 1. Batch all research in parallel FIRST (fast)
- * 2. Then generate ALL slides in PARALLEL with streaming
+ * 2. Search YouTube for a relevant video (in parallel with research)
+ * 3. Then generate ALL slides in PARALLEL with streaming
+ * 4. Insert video slide as slide #2
  * This gives maximum speed while still streaming tokens for each slide
  */
 export async function generatePresentationWithAgent(
@@ -434,22 +443,52 @@ export async function generatePresentationWithAgent(
     preCalculatedLayouts.push(suggestLayout(i, preCalculatedLayouts));
   }
 
-  // PHASE 1: Batch research ALL topics in parallel (much faster!)
+  // PHASE 1: Run research AND YouTube search in parallel
+  const parallelTasks: Promise<unknown>[] = [];
+  
+  // Research task
   let researchResults = new Map<number, string>();
   if (config.enableResearch) {
     emit({ type: "researching", message: "Researching all topics..." });
-    researchResults = await batchResearchTopics(outline, (completed, total) => {
-      emit({ 
-        type: "research_complete", 
-        message: `Research ${completed}/${total}`,
-        data: { completed, total }
-      });
-    });
-    emit({ type: "research_complete", message: "Research complete" });
+    parallelTasks.push(
+      batchResearchTopics(outline, (completed, total) => {
+        emit({ 
+          type: "research_complete", 
+          message: `Research ${completed}/${total}`,
+          data: { completed, total }
+        });
+      }).then(results => {
+        researchResults = results;
+        emit({ type: "research_complete", message: "Research complete" });
+      })
+    );
   }
+  
+  // YouTube search task - search based on presentation title (first topic)
+  let youtubeVideo: YouTubeVideoResult | undefined;
+  if (config.enableYouTubeSearch) {
+    const presentationTopic = outline[0] ?? outline.join(" ");
+    emit({ type: "youtube_search", message: "Finding relevant video..." });
+    parallelTasks.push(
+      searchYouTubeVideo(presentationTopic, language).then(result => {
+        if (result.success && result.video) {
+          youtubeVideo = result.video;
+          emit({ 
+            type: "youtube_found", 
+            message: `Found: ${result.video.title}`,
+            video: result.video
+          });
+        }
+      }).catch(() => {
+        // YouTube search failed, continue without video
+      })
+    );
+  }
+  
+  // Wait for all parallel tasks to complete
+  await Promise.all(parallelTasks);
 
   // PHASE 2: Generate ALL slides in PARALLEL with streaming
-  // Each slide streams its own tokens as it generates
   emit({ type: "generating", message: "Creating slides..." });
   
   // Launch all slide generations in parallel
@@ -460,7 +499,7 @@ export async function generatePresentationWithAgent(
       total,
       language,
       tone,
-      { ...config, enableResearch: false }, // Disable research since we pre-fetched
+      { ...config, enableResearch: false, enableYouTubeSearch: false }, // Disable since we pre-fetched
       onEvent,
       preCalculatedLayouts.slice(0, index),
       researchResults.get(index) // Pass pre-fetched research
@@ -470,14 +509,77 @@ export async function generatePresentationWithAgent(
   // Wait for all to complete
   const results = await Promise.all(slidePromises);
 
+  // PHASE 3: If we found a YouTube video, emit the video slide event
+  // This allows the client to inject the video slide at position 2
+  if (youtubeVideo) {
+    const videoSlideXml = generateVideoSlideXml(youtubeVideo, language);
+    emit({
+      type: "video_slide",
+      message: "Video slide ready",
+      content: videoSlideXml,
+      video: youtubeVideo,
+      slideIndex: 1, // Insert after first slide (index 1 = second position)
+    });
+  }
+
   const successCount = results.filter((r) => r.success).length;
 
   emit({
     type: "agent_done",
     message: `Done! ${successCount}/${total} slides`,
     totalSlides: total,
-    data: { successCount },
+    data: { 
+      successCount,
+      hasVideo: !!youtubeVideo,
+      video: youtubeVideo,
+    },
   });
 
   return results;
+}
+
+/**
+ * Generate XML for a video slide
+ */
+function generateVideoSlideXml(video: YouTubeVideoResult, language: string): string {
+  // Generate appropriate text based on language
+  const watchText = getLocalizedWatchText(language);
+  
+  return `<SECTION layout="vertical">
+  <VIDEO videoId="${video.videoId}" title="${escapeXml(video.title)}" channel="${escapeXml(video.channelTitle)}" thumbnail="${video.thumbnail}" />
+  <H2>${watchText}</H2>
+  <P>${escapeXml(video.title)}</P>
+</SECTION>`;
+}
+
+/**
+ * Get localized "Watch" text
+ */
+function getLocalizedWatchText(language: string): string {
+  const translations: Record<string, string> = {
+    "en": "📺 Watch: Key Concepts Explained",
+    "en-US": "📺 Watch: Key Concepts Explained",
+    "hi": "📺 देखें: मुख्य अवधारणाएं",
+    "es": "📺 Ver: Conceptos Clave",
+    "fr": "📺 Regarder: Concepts Clés",
+    "de": "📺 Ansehen: Wichtige Konzepte",
+    "pt": "📺 Assistir: Conceitos Principais",
+    "ja": "📺 視聴: 重要な概念",
+    "ko": "📺 시청: 핵심 개념",
+    "zh": "📺 观看：关键概念",
+  };
+  
+  return translations[language] ?? translations.en ?? "📺 Watch: Key Concepts Explained";
+}
+
+/**
+ * Escape XML special characters
+ */
+function escapeXml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
 }

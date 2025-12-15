@@ -47,6 +47,13 @@ export type VisualizationListElement = TElement & {
   type: "visualization-list";
   visualizationType: "pyramid" | "arrow" | "timeline";
 };
+export type YouTubeElement = TElement & {
+  type: "youtube";
+  videoId: string;
+  title: string;
+  channelTitle?: string;
+  thumbnail?: string;
+};
 
 // Union type for all possible Plate elements
 export type PlateNode =
@@ -66,7 +73,8 @@ export type PlateNode =
   | StaircaseElement
   | ChartElement
   | VisualizationItemElement
-  | VisualizationListElement;
+  | VisualizationListElement
+  | YouTubeElement;
 
 export type LayoutType = "left" | "right" | "vertical";
 // Updated slide type to be a structured object instead of just an array
@@ -687,6 +695,10 @@ export class SlideParser {
       case "IMG":
         return this.createImage(node);
 
+      case "VIDEO":
+      case "YOUTUBE":
+        return this.createYouTube(node);
+
       case "COLUMNS":
         return this.createColumns(node);
 
@@ -1143,6 +1155,36 @@ export class SlideParser {
       query: query,
       children: [{ text: "" } as TText],
     } as ImageElement;
+  }
+
+  /**
+   * Create a YouTube video embed element
+   */
+  private createYouTube(node: XMLNode): YouTubeElement | null {
+    // Extract video ID from attributes
+    const videoId = node.attributes.videoId ?? 
+                    node.attributes.videoid ?? 
+                    node.attributes.id ?? "";
+    
+    if (!videoId || videoId.trim().length < 5) {
+      return null;
+    }
+
+    const title = node.attributes.title ?? "Video";
+    const channelTitle = node.attributes.channel ?? 
+                         node.attributes.channelTitle ?? 
+                         node.attributes.channeltitle ?? "";
+    const thumbnail = node.attributes.thumbnail ?? 
+                      `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+
+    return {
+      type: "youtube",
+      videoId: videoId.trim(),
+      title: title,
+      channelTitle: channelTitle,
+      thumbnail: thumbnail,
+      children: [{ text: "" } as TText],
+    } as YouTubeElement;
   }
 
   /**
@@ -1611,6 +1653,10 @@ export class SlideParser {
       case "IMG":
         // The createImage function will return null for incomplete images
         return this.createImage(node);
+
+      case "VIDEO":
+      case "YOUTUBE":
+        return this.createYouTube(node);
 
       case "COLUMNS":
         return this.createColumns(node);

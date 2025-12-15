@@ -75,6 +75,9 @@ model Presentation {
   customThemeId     String?
   imageModel        String?
   presenterNotes    Json?
+  youtubeVideoId    String?      // YouTube video ID for embedded video slide
+  youtubeVideoTitle String?      // Cached video title for display
+  youtubeVideoChannel String?    // Cached channel name
   customTheme       CustomTheme? @relation(fields: [customThemeId], references: [id])
   base              BaseDocument @relation(fields: [id], references: [id], onDelete: Cascade)
 }

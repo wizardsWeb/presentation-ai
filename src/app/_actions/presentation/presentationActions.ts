@@ -77,6 +77,9 @@ export async function updatePresentation({
   imageModel,
   presentationStyle,
   language,
+  youtubeVideoId,
+  youtubeVideoTitle,
+  youtubeVideoChannel,
 }: {
   id: string;
   content?: {
@@ -88,6 +91,9 @@ export async function updatePresentation({
   imageModel?: string;
   presentationStyle?: string;
   language?: string;
+  youtubeVideoId?: string;
+  youtubeVideoTitle?: string;
+  youtubeVideoChannel?: string;
 }) {
   const session = await auth();
   if (!session?.user) {
@@ -114,6 +120,9 @@ export async function updatePresentation({
             presentationStyle: effectivePresentationStyle,
             language: effectiveLanguage,
             outline,
+            youtubeVideoId,
+            youtubeVideoTitle,
+            youtubeVideoChannel,
           },
         },
       },

@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Search, Sparkles, CheckCircle, RefreshCw, AlertCircle, Loader2, Play } from "lucide-react";
+import { Search, Sparkles, CheckCircle, RefreshCw, AlertCircle, Loader2, Play, Youtube } from "lucide-react";
 import { useMemo } from "react";
 
 export interface AgentStep {
@@ -22,6 +22,9 @@ const stepIcons: Record<string, React.ReactNode> = {
   slide_start: <Play className="h-4 w-4" />,
   researching: <Search className="h-4 w-4 animate-pulse" />,
   research_complete: <CheckCircle className="h-4 w-4 text-green-500" />,
+  youtube_search: <Youtube className="h-4 w-4 animate-pulse text-red-500" />,
+  youtube_found: <Youtube className="h-4 w-4 text-red-500" />,
+  video_slide: <Youtube className="h-4 w-4 text-red-500" />,
   generating: <Loader2 className="h-4 w-4 animate-spin" />,
   validating: <CheckCircle className="h-4 w-4 animate-pulse" />,
   refining: <RefreshCw className="h-4 w-4 animate-spin" />,
@@ -35,6 +38,9 @@ const stepColors: Record<string, string> = {
   slide_start: "text-blue-400",
   researching: "text-blue-500",
   research_complete: "text-green-500",
+  youtube_search: "text-red-500",
+  youtube_found: "text-red-500",
+  video_slide: "text-red-500",
   generating: "text-yellow-500",
   validating: "text-cyan-500",
   refining: "text-orange-500",

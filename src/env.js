@@ -12,6 +12,7 @@ export const env = createEnv({
     TOGETHER_AI_API_KEY: z.string(),
     TAVILY_API_KEY: z.string().optional(),
     GOOGLE_API_KEY: z.string().optional(),
+    YOUTUBE_API_KEY: z.string().optional(),
     GOOGLE_CLIENT_ID: z.string(),
     GOOGLE_CLIENT_SECRET: z.string(),
     NEXTAUTH_URL: z.preprocess(
@@ -33,6 +34,7 @@ export const env = createEnv({
     TOGETHER_AI_API_KEY: process.env.TOGETHER_AI_API_KEY,
     TAVILY_API_KEY: process.env.TAVILY_API_KEY,
     GOOGLE_API_KEY: process.env.GOOGLE_API_KEY,
+    YOUTUBE_API_KEY: process.env.YOUTUBE_API_KEY,
     NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
     NEXTAUTH_URL: process.env.NEXTAUTH_URL,
   },

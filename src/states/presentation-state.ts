@@ -51,6 +51,15 @@ interface PresentationState {
   isAgentActive: boolean;
   agentSteps: AgentStep[];
 
+  // YouTube video state
+  youtubeVideo: {
+    videoId: string;
+    title: string;
+    channelTitle: string;
+    thumbnail: string;
+  } | null;
+  isSearchingYouTube: boolean;
+
   setSlides: (slides: PlateSlide[]) => void;
   setExpectedSlideCount: (count: number) => void;
   setGenerationMode: (mode: GenerationMode) => void;
@@ -58,6 +67,8 @@ interface PresentationState {
   setAgentSteps: (steps: AgentStep[]) => void;
   addAgentStep: (step: AgentStep) => void;
   clearAgentSteps: () => void;
+  setYoutubeVideo: (video: { videoId: string; title: string; channelTitle: string; thumbnail: string; } | null) => void;
+  setIsSearchingYouTube: (isSearching: boolean) => void;
   setCurrentPresentation: (id: string | null, title: string | null) => void;
   setIsGridView: (isGrid: boolean) => void;
   setIsSheetOpen: (isOpen: boolean) => void;
@@ -140,6 +151,10 @@ export const usePresentationState = create<PresentationState>((set) => ({
   isAgentActive: false,
   agentSteps: [],
 
+  // YouTube video state
+  youtubeVideo: null,
+  isSearchingYouTube: false,
+
   setSlides: (slides) => {
     set({ slides });
   },
@@ -149,6 +164,8 @@ export const usePresentationState = create<PresentationState>((set) => ({
   setAgentSteps: (steps) => set({ agentSteps: steps }),
   addAgentStep: (step) => set((state) => ({ agentSteps: [...state.agentSteps, step] })),
   clearAgentSteps: () => set({ agentSteps: [] }),
+  setYoutubeVideo: (video) => set({ youtubeVideo: video }),
+  setIsSearchingYouTube: (isSearching) => set({ isSearchingYouTube: isSearching }),
   setCurrentPresentation: (id, title) =>
     set({ currentPresentationId: id, currentPresentationTitle: title }),
   setIsGridView: (isGrid) => set({ isGridView: isGrid }),
@@ -212,6 +229,8 @@ export const usePresentationState = create<PresentationState>((set) => ({
       isGeneratingPresentation: false,
       isAgentActive: false,
       agentSteps: [],
+      youtubeVideo: null,
+      isSearchingYouTube: false,
     }),
 
   setIsThemeCreatorOpen: (update) => set({ isThemeCreatorOpen: update }),

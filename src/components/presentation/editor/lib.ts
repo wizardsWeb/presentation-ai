@@ -9,3 +9,4 @@ export const CYCLE_ELEMENT = "cycle";
 export const ICON_ELEMENT = "icon";
 export const ICON_ITEM_ELEMENT = "icon-item";
 export const ICONS_ELEMENT = "icons";
+export const YOUTUBE_ELEMENT = "youtube";

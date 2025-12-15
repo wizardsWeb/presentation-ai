@@ -10,7 +10,6 @@ import {
   themeDefaultTransition,
   type AnimationIntensity,
   type SlideTransitionType,
-  type SlideTransitionVariant,
 } from "@/lib/presentation/animations";
 import type { ThemeName } from "@/lib/presentation/themes";
 

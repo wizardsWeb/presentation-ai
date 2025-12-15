@@ -128,17 +128,35 @@ function collectAllText(node: unknown, results: string[] = []): string[] {
 interface SlideContent {
   title: string;
   bulletPoints: string[];
+  youtubeVideo?: {
+    videoId: string;
+    title: string;
+    channel?: string;
+    thumbnail?: string;
+  };
 }
 
 // Process slide content into title + bullet points
 function processSlideContent(content: unknown[]): SlideContent {
   let title = "";
   const bulletPoints: string[] = [];
+  let youtubeVideo: SlideContent["youtubeVideo"];
 
   for (const node of content) {
     if (!node || typeof node !== "object") continue;
     const n = node as Record<string, unknown>;
     const type = n.type as string;
+
+    // Handle YouTube video element
+    if (type === "youtube") {
+      youtubeVideo = {
+        videoId: n.videoId as string,
+        title: n.title as string,
+        channel: n.channel as string | undefined,
+        thumbnail: n.thumbnail as string | undefined,
+      };
+      continue;
+    }
 
     // Main title from h1 or h2
     if (type === "h1" || type === "h2") {
@@ -203,7 +221,7 @@ function processSlideContent(content: unknown[]): SlideContent {
     }
   }
 
-  return { title, bulletPoints };
+  return { title, bulletPoints, youtubeVideo };
 }
 
 // Add a numbered badge (rounded square)
@@ -364,6 +382,103 @@ export async function POST(request: NextRequest) {
           valign: "top",
         });
         currentY += 0.4;
+      }
+
+      // Add YouTube video preview if present
+      if (processed.youtubeVideo) {
+        const video = processed.youtubeVideo;
+        const videoUrl = `https://www.youtube.com/watch?v=${video.videoId}`;
+        const thumbnailUrl = video.thumbnail ?? `https://img.youtube.com/vi/${video.videoId}/maxresdefault.jpg`;
+        
+        currentY += 0.2;
+        
+        // Add video thumbnail with play button overlay effect
+        try {
+          slide.addImage({
+            path: thumbnailUrl,
+            x: contentX,
+            y: currentY,
+            w: 4.5,
+            h: 2.53, // 16:9 aspect ratio
+            sizing: { type: "cover", w: 4.5, h: 2.53 },
+            hyperlink: { url: videoUrl },
+          });
+          
+          // Add play button overlay (red circle with white triangle)
+          slide.addShape("ellipse" as PptxGenJS.ShapeType, {
+            x: contentX + 1.8,
+            y: currentY + 0.9,
+            w: 0.7,
+            h: 0.7,
+            fill: { color: "FF0000" },
+            line: { color: "FF0000", width: 0 },
+          });
+          
+          // Play triangle
+          slide.addText("▶", {
+            x: contentX + 1.8,
+            y: currentY + 0.9,
+            w: 0.7,
+            h: 0.7,
+            fontSize: 18,
+            color: "FFFFFF",
+            align: "center",
+            valign: "middle",
+          });
+        } catch {
+          // Thumbnail failed, add placeholder
+          slide.addShape("rect" as PptxGenJS.ShapeType, {
+            x: contentX,
+            y: currentY,
+            w: 4.5,
+            h: 2.53,
+            fill: { color: formatColor(colors.muted) },
+            line: { color: formatColor(colors.primary), width: 1 },
+          });
+        }
+        
+        // Add video title and link
+        slide.addText(video.title, {
+          x: contentX + 4.7,
+          y: currentY,
+          w: 4.5,
+          h: 0.6,
+          fontSize: 11,
+          bold: true,
+          color: formatColor(colors.heading),
+          fontFace: "Arial",
+          align: "left",
+          valign: "top",
+          hyperlink: { url: videoUrl },
+        });
+        
+        if (video.channel) {
+          slide.addText(`Channel: ${video.channel}`, {
+            x: contentX + 4.7,
+            y: currentY + 0.6,
+            w: 4.5,
+            h: 0.3,
+            fontSize: 9,
+            color: formatColor(colors.muted),
+            fontFace: "Arial",
+            align: "left",
+          });
+        }
+        
+        // Add "Click to watch" text
+        slide.addText("🔗 Click thumbnail to watch on YouTube", {
+          x: contentX + 4.7,
+          y: currentY + 1.0,
+          w: 4.5,
+          h: 0.3,
+          fontSize: 9,
+          color: formatColor(colors.primary),
+          fontFace: "Arial",
+          align: "left",
+          hyperlink: { url: videoUrl },
+        });
+        
+        currentY += 2.8;
       }
 
       // Add slide number (bottom right)

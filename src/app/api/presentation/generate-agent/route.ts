@@ -17,6 +17,7 @@ interface AgentRequest {
 const DEFAULT_AGENT_CONFIG: AgentConfig = {
   enableResearch: true,
   enableValidation: false, // Disabled for speed
+  enableYouTubeSearch: true, // Enable YouTube video search
   maxRefinements: 0,
   minValidationScore: 7,
 };
