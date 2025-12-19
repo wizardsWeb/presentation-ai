@@ -10,6 +10,10 @@ import {
   quickValidate,
 } from "./tools";
 import { searchYouTubeVideo, type YouTubeVideoResult } from "@/lib/youtube/search";
+import { 
+  type TeachingStyle, 
+  type AudienceType 
+} from "@/states/presentation-state";
 
 /**
  * Slide Generation Agent
@@ -63,12 +67,66 @@ export interface AgentConfig {
   minValidationScore: number;
 }
 
+// Pedagogy configuration for personalized content
+export interface PedagogyConfig {
+  teachingStyle: TeachingStyle;
+  audienceType: AudienceType;
+}
+
 const DEFAULT_CONFIG: AgentConfig = {
   enableResearch: true,
   enableValidation: false,
   enableYouTubeSearch: true,     // NEW: Enabled by default
   maxRefinements: 0,
   minValidationScore: 7,
+};
+
+const DEFAULT_PEDAGOGY: PedagogyConfig = {
+  teachingStyle: "concept-first",
+  audienceType: "professional",
+};
+
+// Section types for slide categorization
+type SectionType = "introduction" | "content" | "example" | "activity" | "summary";
+
+// Determine section type based on slide position and total
+const getSectionType = (slideIndex: number, totalSlides: number): SectionType => {
+  // First slide is always introduction
+  if (slideIndex === 0) return "introduction";
+  
+  // Last slide is always summary
+  if (slideIndex === totalSlides - 1) return "summary";
+  
+  // For presentations with more than 3 slides, second-to-last can also be summary
+  if (totalSlides > 3 && slideIndex === totalSlides - 2) return "summary";
+  
+  // Content slides - use a mix of content, example, and activity
+  const contentPosition = slideIndex % 4;
+  if (contentPosition === 0 || contentPosition === 1) return "content";
+  if (contentPosition === 2) return "example";
+  return "activity";
+};
+
+// Get teaching style content instructions for agents
+const getTeachingStyleContent = (style: TeachingStyle): string => {
+  const styleMap: Record<TeachingStyle, string> = {
+    "concept-first": "Structure: definition/concept → explanation → examples. Build from fundamentals.",
+    "example-first": "Structure: real-world example → identify patterns → reveal concept.",
+    "storytelling": "Use narrative elements: hook, challenge, journey, resolution.",
+    "data-driven": "Lead with data/statistics, include analysis, support claims with evidence.",
+  };
+  return styleMap[style];
+};
+
+// Get audience-specific content adjustments for agents
+const getAudienceContent = (audience: AudienceType): string => {
+  const audienceMap: Record<AudienceType, string> = {
+    "school": "Simple language, fun relatable examples, engaging visuals, no jargon.",
+    "college": "Academic depth, theoretical frameworks, research references, critical analysis.",
+    "training": "Practical skills focus, exercises, workplace scenarios, actionable takeaways.",
+    "professional": "Concise, executive-friendly, strategic focus, business value, respect time.",
+  };
+  return audienceMap[audience];
 };
 
 // Research cache to avoid duplicate searches
@@ -86,6 +144,9 @@ CONTEXT:
 - Topic: {SLIDE_TOPIC}
 - Language: {LANGUAGE} | Tone: {TONE}
 - Slide {SLIDE_NUMBER}/{TOTAL_SLIDES} | Layout: {SUGGESTED_LAYOUT}
+
+TEACHING APPROACH: {TEACHING_STYLE}
+AUDIENCE: {AUDIENCE_TYPE}
 
 RESEARCH DATA (use these facts!):
 {RESEARCH_CONTEXT}
@@ -130,7 +191,7 @@ STAIRCASE - Progression:
 <STAIRCASE><DIV><H3>Stage</H3><P>Description.</P></DIV>...</STAIRCASE>
 
 OUTPUT (only this, no explanations):
-<SECTION layout="{SUGGESTED_LAYOUT}">
+<SECTION layout="{SUGGESTED_LAYOUT}" section="{SECTION_TYPE}">
   <H1>Compelling Title</H1>
   [ONE component with 3-4 rich items]
   <IMG query="professional photo: specific subject, mood, setting - 10 words"/>
@@ -144,9 +205,13 @@ CONTEXT:
 - Language: {LANGUAGE} | Tone: {TONE}  
 - Slide {SLIDE_NUMBER}/{TOTAL_SLIDES} | Layout: {SUGGESTED_LAYOUT}
 
+TEACHING APPROACH: {TEACHING_STYLE}
+AUDIENCE: {AUDIENCE_TYPE}
+
 RULES:
 ✓ Title: Punchy, specific (use numbers). Bad: "Overview" Good: "5 Key Trends"
 ✓ Content: Specific stats/examples, not vague claims
+✓ Tailor content for specified audience and teaching approach
 ✓ 3-4 items per component
 
 COMPONENTS (pick best fit):
@@ -160,7 +225,7 @@ PYRAMID: <PYRAMID><DIV><H3>Level</H3><P>...</P></DIV>...</PYRAMID>
 STAIRCASE: <STAIRCASE><DIV><H3>Stage</H3><P>...</P></DIV>...</STAIRCASE>
 
 OUTPUT ONLY:
-<SECTION layout="{SUGGESTED_LAYOUT}">
+<SECTION layout="{SUGGESTED_LAYOUT}" section="{SECTION_TYPE}">
   <H1>Compelling Title</H1>
   [ONE component, 3-4 items]
   <IMG query="professional photo: subject, mood, setting - 10 words"/>
@@ -237,7 +302,8 @@ export async function generateSlideWithAgent(
   config: AgentConfig = DEFAULT_CONFIG,
   onEvent?: (event: AgentEvent) => void,
   previousLayouts: string[] = [],
-  prefetchedResearch?: string // NEW: Pre-fetched research context
+  prefetchedResearch?: string, // Pre-fetched research context
+  pedagogy: PedagogyConfig = DEFAULT_PEDAGOGY // Pedagogy configuration
 ): Promise<SlideGenerationResult> {
   const emit = (event: AgentEvent) => {
     if (onEvent) {
@@ -309,7 +375,10 @@ export async function generateSlideWithAgent(
         TOTAL_SLIDES: total,
         PREVIOUS_LAYOUTS: previousLayouts.slice(-2).join(", ") || "none",
         SUGGESTED_LAYOUT: suggestedLayout,
+        SECTION_TYPE: getSectionType(index, total),
         RESEARCH_CONTEXT: researchContext,
+        TEACHING_STYLE: getTeachingStyleContent(pedagogy.teachingStyle),
+        AUDIENCE_TYPE: getAudienceContent(pedagogy.audienceType),
       });
 
       let tokenBuffer = "";
@@ -350,7 +419,10 @@ export async function generateSlideWithAgent(
         TOTAL_SLIDES: total,
         PREVIOUS_LAYOUTS: previousLayouts.slice(-2).join(", ") || "none",
         SUGGESTED_LAYOUT: suggestedLayout,
+        SECTION_TYPE: getSectionType(index, total),
         RESEARCH_CONTEXT: researchContext,
+        TEACHING_STYLE: getTeachingStyleContent(pedagogy.teachingStyle),
+        AUDIENCE_TYPE: getAudienceContent(pedagogy.audienceType),
       });
     }
 
@@ -424,7 +496,8 @@ export async function generatePresentationWithAgent(
   language: string,
   tone: string,
   config: AgentConfig = DEFAULT_CONFIG,
-  onEvent?: (event: AgentEvent) => void
+  onEvent?: (event: AgentEvent) => void,
+  pedagogy: PedagogyConfig = DEFAULT_PEDAGOGY
 ): Promise<SlideGenerationResult[]> {
   const emit = (event: AgentEvent) => {
     if (onEvent) onEvent(event);
@@ -502,7 +575,8 @@ export async function generatePresentationWithAgent(
       { ...config, enableResearch: false, enableYouTubeSearch: false }, // Disable since we pre-fetched
       onEvent,
       preCalculatedLayouts.slice(0, index),
-      researchResults.get(index) // Pass pre-fetched research
+      researchResults.get(index), // Pass pre-fetched research
+      pedagogy // Pass pedagogy configuration
     )
   );
 

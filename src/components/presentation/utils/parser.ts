@@ -77,6 +77,16 @@ export type PlateNode =
   | YouTubeElement;
 
 export type LayoutType = "left" | "right" | "vertical";
+
+// Section types for organizing slides into logical groups
+export type SectionType = 
+  | "introduction"   // Opening slide - hook, overview
+  | "content"        // Main body slides
+  | "example"        // Case studies, demonstrations
+  | "activity"       // Interactive elements, exercises
+  | "summary"        // Recap, key takeaways
+  | "conclusion";    // Final slide, call to action
+
 // Updated slide type to be a structured object instead of just an array
 export type PlateSlide = {
   id: string;
@@ -89,6 +99,8 @@ export type PlateSlide = {
   alignment?: "start" | "center" | "end";
   bgColor?: string;
   width?: "L" | "M";
+  sectionType?: SectionType;  // Section this slide belongs to
+  isGenerating?: boolean;     // Whether this slide is currently being generated
 };
 
 // Simple XML node interface for our parser
@@ -587,6 +599,20 @@ export class SlideParser {
       }
     }
 
+    // Extract section type from SECTION attributes
+    let sectionType: SectionType | undefined = undefined;
+    const sectionAttr = sectionNode.attributes.section;
+    
+    if (sectionAttr) {
+      const validSections: SectionType[] = ["introduction", "content", "example", "activity", "summary", "conclusion"];
+      if (validSections.includes(sectionAttr as SectionType)) {
+        sectionType = sectionAttr as SectionType;
+      } else {
+        // Default to "content" if we get an invalid section value
+        sectionType = "content";
+      }
+    }
+
     // Process each child of SECTION as a separate top-level element
     const plateElements: PlateNode[] = [];
     let rootImage: { query: string; url?: string } | undefined = undefined;
@@ -666,6 +692,7 @@ export class SlideParser {
       content: plateElements,
       ...(rootImage ? { rootImage } : {}),
       ...(layoutType ? { layoutType: layoutType } : {}),
+      ...(sectionType ? { sectionType } : {}),
       alignment: "center",
     };
   };

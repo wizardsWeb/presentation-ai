@@ -228,7 +228,8 @@ export default function PresentationPage() {
     return null;
   })();
 
-  if (isLoading) {
+  // Don't show loading state if we're generating - slides will stream in
+  if (isLoading && !isGeneratingPresentation) {
     return <LoadingState />;
   }
 

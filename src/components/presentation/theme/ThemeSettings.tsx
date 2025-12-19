@@ -1,4 +1,9 @@
-import { usePresentationState } from "@/states/presentation-state";
+import { 
+  usePresentationState, 
+  SUPPORTED_LANGUAGES,
+  type TeachingStyle,
+  type AudienceType,
+} from "@/states/presentation-state";
 import {
   Select,
   SelectContent,
@@ -13,6 +18,7 @@ import { useTheme } from "next-themes";
 import { type ImageModelList } from "@/app/_actions/image/generate";
 import { ThemeModal } from "./ThemeModal";
 import { Button } from "@/components/ui/button";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 export const IMAGE_MODELS: { value: ImageModelList; label: string }[] = [
   { value: "pollinations", label: "Pollinations (Free)" },
@@ -31,8 +37,33 @@ const PRESENTATION_STYLES = [
   { value: "elegant", label: "Elegant" },
 ];
 
+const TEACHING_STYLES: { value: TeachingStyle; label: string; description: string }[] = [
+  { value: "concept-first", label: "Concept First", description: "Theory → Explanation → Examples" },
+  { value: "example-first", label: "Example First", description: "Case Study → Pattern → Concept" },
+  { value: "storytelling", label: "Storytelling", description: "Hook → Problem → Journey → Resolution" },
+  { value: "data-driven", label: "Data Driven", description: "Statistics → Analysis → Insights" },
+];
+
+const AUDIENCE_TYPES: { value: AudienceType; label: string; description: string }[] = [
+  { value: "school", label: "School (K-12)", description: "Simple language, fun examples" },
+  { value: "college", label: "College/University", description: "Academic depth, citations" },
+  { value: "training", label: "Corporate Training", description: "Practical skills, exercises" },
+  { value: "professional", label: "Business/Professional", description: "Executive-friendly, concise" },
+];
+
 export function ThemeSettings() {
-  const { theme, setTheme, imageModel, setImageModel } = usePresentationState();
+  const { 
+    theme, 
+    setTheme, 
+    imageModel, 
+    setImageModel,
+    teachingStyle,
+    setTeachingStyle,
+    audienceType,
+    setAudienceType,
+    language,
+    setLanguage,
+  } = usePresentationState();
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
 
@@ -151,6 +182,76 @@ export function ThemeSettings() {
             {PRESENTATION_STYLES.map((style) => (
               <SelectItem key={style.value} value={style.value}>
                 {style.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Pedagogy Settings */}
+      <div className="space-y-4 border-t pt-6">
+        <Label className="text-sm font-medium">Teaching Style</Label>
+        <RadioGroup
+          value={teachingStyle}
+          onValueChange={(value) => setTeachingStyle(value as TeachingStyle)}
+          className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+        >
+          {TEACHING_STYLES.map((style) => (
+            <label
+              key={style.value}
+              className={cn(
+                "flex cursor-pointer items-start space-x-3 rounded-lg border p-3 transition-colors",
+                teachingStyle === style.value
+                  ? "border-primary bg-primary/5"
+                  : "border-muted hover:border-primary/50"
+              )}
+            >
+              <RadioGroupItem value={style.value} className="mt-0.5" />
+              <div className="space-y-1">
+                <div className="text-sm font-medium">{style.label}</div>
+                <div className="text-xs text-muted-foreground">
+                  {style.description}
+                </div>
+              </div>
+            </label>
+          ))}
+        </RadioGroup>
+      </div>
+
+      <div className="space-y-4">
+        <Label className="text-sm font-medium">Target Audience</Label>
+        <Select
+          value={audienceType}
+          onValueChange={(value) => setAudienceType(value as AudienceType)}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select audience" />
+          </SelectTrigger>
+          <SelectContent>
+            {AUDIENCE_TYPES.map((audience) => (
+              <SelectItem key={audience.value} value={audience.value}>
+                <div className="flex flex-col">
+                  <span>{audience.label}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {audience.description}
+                  </span>
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-4">
+        <Label className="text-sm font-medium">Content Language</Label>
+        <Select value={language} onValueChange={setLanguage}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select language" />
+          </SelectTrigger>
+          <SelectContent>
+            {SUPPORTED_LANGUAGES.map((lang) => (
+              <SelectItem key={lang.code} value={lang.code}>
+                {lang.name}
               </SelectItem>
             ))}
           </SelectContent>

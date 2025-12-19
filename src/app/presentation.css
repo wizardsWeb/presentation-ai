@@ -251,3 +251,43 @@ h6.presentation-heading {
 .presentation-slide[style*="background"] {
   background-color: var(--presentation-background) !important;
 }
+
+/* Presentation mode - ensure content fits within screen */
+[data-is-presenting="true"] {
+  max-height: 100vh;
+  overflow: hidden;
+}
+
+[data-is-presenting="true"] .presentation-slide {
+  max-height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Ensure smooth transitions between slides */
+.slide-wrapper {
+  will-change: opacity;
+}
+
+/* Content containment for presentation mode */
+[data-is-presenting="true"] [data-slate-editor="true"] {
+  max-height: 85vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  padding: 2rem 3rem;
+}
+
+/* Scale down content to fit in presentation mode */
+[data-is-presenting="true"] .my-4,
+[data-is-presenting="true"] .my-8 {
+  margin-top: 0.5rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+/* Constrain YouTube video in presentation mode */
+[data-is-presenting="true"] iframe {
+  max-height: 55vh;
+}

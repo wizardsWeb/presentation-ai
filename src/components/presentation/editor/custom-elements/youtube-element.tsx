@@ -43,18 +43,29 @@ export const YouTubeElement = withRef<typeof PlateElement>(
       <PlateElement
         ref={ref}
         element={element}
-        className={cn("my-8", className)}
+        className={cn("my-4", className)}
         {...props}
       >
         <motion.div
-          className="w-full"
+          className={cn(
+            "w-full",
+            isPresenting && "flex flex-col items-center justify-center"
+          )}
           variants={variants.fadeUp}
           {...animationProps}
         >
           {/* Video Container with 16:9 aspect ratio */}
-          <div className="relative w-full overflow-hidden rounded-xl bg-black/5 dark:bg-white/5">
+          <div className={cn(
+            "relative w-full overflow-hidden rounded-xl bg-black/5 dark:bg-white/5",
+            isPresenting && "max-h-[60vh] max-w-[80vw]"
+          )}>
             {/* Aspect ratio container */}
-            <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
+            <div 
+              className="relative w-full" 
+              style={{ 
+                paddingBottom: isPresenting ? "min(56.25%, 50vh)" : "56.25%"
+              }}
+            >
               {isPlaying ? (
                 // Embedded YouTube Player
                 <iframe

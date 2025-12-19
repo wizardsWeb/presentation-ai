@@ -12,6 +12,8 @@ import { ShareButton } from "./buttons/ShareButton";
 import { PresentButton } from "./buttons/PresentButton";
 import { DownloadButton } from "./buttons/DownloadButton";
 import { SaveStatus } from "./buttons/SaveStatus";
+import { QuizButton } from "./buttons/QuizButton";
+import { QuizModal } from "../quiz/QuizModal";
 import { Brain } from "@/components/ui/icons";
 import SideBarDropdown from "@/components/auth/Dropdown";
 
@@ -59,6 +61,9 @@ export default function PresentationHeader({ title }: PresentationHeaderProps) {
         {/* Transition selector - Only in presentation page, not outline */}
         {isPresentationPage && !isPresenting && <TransitionSelector />}
 
+        {/* Quiz button - Only in presentation page, not outline */}
+        {isPresentationPage && !isPresenting && <QuizButton />}
+
         {/* Download button - Only in presentation page, not outline */}
         {isPresentationPage && !isPresenting && <DownloadButton />}
 
@@ -71,6 +76,9 @@ export default function PresentationHeader({ title }: PresentationHeaderProps) {
         {/* User profile dropdown - Keep this on all pages */}
         {!isPresenting && <SideBarDropdown />}
       </div>
+
+      {/* Quiz Modal */}
+      <QuizModal />
     </header>
   );
 }

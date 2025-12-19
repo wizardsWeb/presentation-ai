@@ -152,7 +152,7 @@ export const PresentationSlidesView = ({
       >
       <SortableContext items={items} strategy={verticalListSortingStrategy}>
         <DndProvider backend={HTML5Backend}>
-          <AnimatePresence mode="wait">
+          <AnimatePresence mode="popLayout">
             {items.map((slide, index) => (
               <div
                 key={`slide-${slide.id}-${index}`}

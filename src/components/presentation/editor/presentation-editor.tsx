@@ -166,7 +166,7 @@ const PresentationEditor = React.memo(
       <TooltipProvider>
         <div
           className={cn(
-            "flex min-h-[500px]",
+            "flex min-h-[500px] h-full",
             "scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/30 overflow-hidden p-0 scrollbar-w-1 scrollbar-track-transparent",
             "relative text-foreground",
             "focus-within:ring-2 focus-within:ring-primary focus-within:ring-opacity-50",
@@ -174,7 +174,8 @@ const PresentationEditor = React.memo(
             initialContent?.layoutType === "right" && "flex-row",
             initialContent?.layoutType === "vertical" && "flex-col-reverse",
             initialContent?.layoutType === "left" && "flex-row-reverse",
-            "presentation-slide"
+            "presentation-slide",
+            readOnly && "max-h-screen"
           )}
           style={{
             borderRadius: "var(--presentation-border-radius, 0.5rem)",
@@ -199,10 +200,11 @@ const PresentationEditor = React.memo(
             <Editor
               className={cn(
                 className,
-                "flex flex-col border-none !bg-transparent py-12 outline-none",
+                "flex flex-col border-none !bg-transparent py-8 outline-none",
                 initialContent?.alignment === "start" && "justify-start",
                 initialContent?.alignment === "center" && "justify-center",
-                initialContent?.alignment === "end" && "justify-end"
+                initialContent?.alignment === "end" && "justify-end",
+                readOnly && "max-h-[90vh] overflow-hidden"
               )}
               id={id}
               autoFocus={autoFocus && !readOnly}

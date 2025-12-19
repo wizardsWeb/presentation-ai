@@ -6,6 +6,84 @@ import { type SlideTransitionType } from "@/lib/presentation/animations";
 
 export type GenerationMode = "quick" | "research";
 
+// ============================================================================
+// PEDAGOGY TYPES - Teaching style and audience personalization
+// ============================================================================
+
+/**
+ * Teaching Style - Fundamentally changes how content is structured on each slide
+ */
+export type TeachingStyle = 
+  | "concept-first"    // Theory → Explanation → Examples (traditional academic)
+  | "example-first"    // Case Study → Pattern → Concept (inductive learning)
+  | "storytelling"     // Hook → Problem → Journey → Resolution (narrative)
+  | "data-driven";     // Statistics → Analysis → Insights (evidence-based)
+
+/**
+ * Audience Type - Changes examples, tone, and complexity
+ */
+export type AudienceType = 
+  | "school"           // K-12 students: simple language, fun analogies, colorful
+  | "college"          // University: academic depth, research references, critical thinking
+  | "training"         // Corporate training: skill-focused, hands-on, step-by-step
+  | "professional";    // Business: ROI focus, data-driven, executive summaries
+
+// ============================================================================
+// QUIZ TYPES - Interactive quiz generation from presentation content
+// ============================================================================
+
+/**
+ * A single quiz question with multiple choice options
+ */
+export interface QuizQuestion {
+  id: string;
+  question: string;
+  options: string[];          // Array of 4 options (A, B, C, D)
+  correctAnswer: number;      // Index of correct option (0-3)
+  explanation: string;        // Why this answer is correct
+  slideIndex?: number;        // Optional: which slide this question relates to
+  difficulty: "easy" | "medium" | "hard";
+}
+
+/**
+ * Quiz state and user responses
+ */
+export interface QuizState {
+  questions: QuizQuestion[];
+  currentQuestionIndex: number;
+  userAnswers: (number | null)[]; // User's selected answers (null = not answered)
+  isComplete: boolean;
+  score: number;                   // Number of correct answers
+  showResults: boolean;
+}
+
+/**
+ * Supported languages for content generation
+ */
+export const SUPPORTED_LANGUAGES = [
+  { code: "en-US", name: "English (US)" },
+  { code: "en-GB", name: "English (UK)" },
+  { code: "hi", name: "Hindi" },
+  { code: "es", name: "Spanish" },
+  { code: "fr", name: "French" },
+  { code: "de", name: "German" },
+  { code: "pt", name: "Portuguese" },
+  { code: "zh", name: "Chinese (Simplified)" },
+  { code: "ja", name: "Japanese" },
+  { code: "ko", name: "Korean" },
+  { code: "ar", name: "Arabic" },
+  { code: "ru", name: "Russian" },
+  { code: "it", name: "Italian" },
+  { code: "nl", name: "Dutch" },
+  { code: "pl", name: "Polish" },
+  { code: "tr", name: "Turkish" },
+  { code: "vi", name: "Vietnamese" },
+  { code: "ta", name: "Tamil" },
+  { code: "te", name: "Telugu" },
+  { code: "mr", name: "Marathi" },
+  { code: "bn", name: "Bengali" },
+] as const;
+
 // Agent step type for tracking agentic generation progress
 export interface AgentStep {
   type: string;
@@ -30,6 +108,8 @@ interface PresentationState {
   presentationInput: string;
   imageModel: ImageModelList;
   presentationStyle: string;
+  teachingStyle: TeachingStyle;
+  audienceType: AudienceType;
   savingStatus: "idle" | "saving" | "saved";
   isPresenting: boolean;
   currentSlideIndex: number;
@@ -60,6 +140,11 @@ interface PresentationState {
   } | null;
   isSearchingYouTube: boolean;
 
+  // Quiz state
+  quiz: QuizState | null;
+  isGeneratingQuiz: boolean;
+  isQuizModalOpen: boolean;
+
   setSlides: (slides: PlateSlide[]) => void;
   setExpectedSlideCount: (count: number) => void;
   setGenerationMode: (mode: GenerationMode) => void;
@@ -69,6 +154,16 @@ interface PresentationState {
   clearAgentSteps: () => void;
   setYoutubeVideo: (video: { videoId: string; title: string; channelTitle: string; thumbnail: string; } | null) => void;
   setIsSearchingYouTube: (isSearching: boolean) => void;
+  
+  // Quiz actions
+  setQuiz: (quiz: QuizState | null) => void;
+  setIsGeneratingQuiz: (isGenerating: boolean) => void;
+  setIsQuizModalOpen: (isOpen: boolean) => void;
+  answerQuizQuestion: (questionIndex: number, answerIndex: number) => void;
+  nextQuizQuestion: () => void;
+  previousQuizQuestion: () => void;
+  submitQuiz: () => void;
+  resetQuiz: () => void;
   setCurrentPresentation: (id: string | null, title: string | null) => void;
   setIsGridView: (isGrid: boolean) => void;
   setIsSheetOpen: (isOpen: boolean) => void;
@@ -87,6 +182,8 @@ interface PresentationState {
   setOutline: (topics: string[]) => void;
   setImageModel: (model: ImageModelList) => void;
   setPresentationStyle: (style: string) => void;
+  setTeachingStyle: (style: TeachingStyle) => void;
+  setAudienceType: (audience: AudienceType) => void;
   setSavingStatus: (status: "idle" | "saving" | "saved") => void;
   setIsPresenting: (isPresenting: boolean) => void;
   setCurrentSlideIndex: (index: number) => void;
@@ -131,6 +228,8 @@ export const usePresentationState = create<PresentationState>((set) => ({
   customThemeData: null,
   imageModel: "unsplash", // Fast stock photos by default
   presentationStyle: "professional",
+  teachingStyle: "concept-first", // Default teaching approach
+  audienceType: "professional", // Default audience
   slides: [], // Now holds the new slide object structure
   savingStatus: "idle",
   isPresenting: false,
@@ -155,6 +254,11 @@ export const usePresentationState = create<PresentationState>((set) => ({
   youtubeVideo: null,
   isSearchingYouTube: false,
 
+  // Quiz state
+  quiz: null,
+  isGeneratingQuiz: false,
+  isQuizModalOpen: false,
+
   setSlides: (slides) => {
     set({ slides });
   },
@@ -166,6 +270,47 @@ export const usePresentationState = create<PresentationState>((set) => ({
   clearAgentSteps: () => set({ agentSteps: [] }),
   setYoutubeVideo: (video) => set({ youtubeVideo: video }),
   setIsSearchingYouTube: (isSearching) => set({ isSearchingYouTube: isSearching }),
+  
+  // Quiz actions
+  setQuiz: (quiz) => set({ quiz }),
+  setIsGeneratingQuiz: (isGenerating) => set({ isGeneratingQuiz: isGenerating }),
+  setIsQuizModalOpen: (isOpen) => set({ isQuizModalOpen: isOpen }),
+  answerQuizQuestion: (questionIndex, answerIndex) => set((state) => {
+    if (!state.quiz) return state;
+    const newAnswers = [...state.quiz.userAnswers];
+    newAnswers[questionIndex] = answerIndex;
+    return { quiz: { ...state.quiz, userAnswers: newAnswers } };
+  }),
+  nextQuizQuestion: () => set((state) => {
+    if (!state.quiz) return state;
+    const nextIndex = Math.min(state.quiz.currentQuestionIndex + 1, state.quiz.questions.length - 1);
+    return { quiz: { ...state.quiz, currentQuestionIndex: nextIndex } };
+  }),
+  previousQuizQuestion: () => set((state) => {
+    if (!state.quiz) return state;
+    const prevIndex = Math.max(state.quiz.currentQuestionIndex - 1, 0);
+    return { quiz: { ...state.quiz, currentQuestionIndex: prevIndex } };
+  }),
+  submitQuiz: () => set((state) => {
+    if (!state.quiz) return state;
+    const score = state.quiz.questions.reduce((acc, q, idx) => {
+      return acc + (state.quiz!.userAnswers[idx] === q.correctAnswer ? 1 : 0);
+    }, 0);
+    return { quiz: { ...state.quiz, isComplete: true, showResults: true, score } };
+  }),
+  resetQuiz: () => set((state) => {
+    if (!state.quiz) return state;
+    return {
+      quiz: {
+        ...state.quiz,
+        currentQuestionIndex: 0,
+        userAnswers: state.quiz.questions.map(() => null),
+        isComplete: false,
+        showResults: false,
+        score: 0,
+      },
+    };
+  }),
   setCurrentPresentation: (id, title) =>
     set({ currentPresentationId: id, currentPresentationTitle: title }),
   setIsGridView: (isGrid) => set({ isGridView: isGrid }),
@@ -183,6 +328,8 @@ export const usePresentationState = create<PresentationState>((set) => ({
   setOutline: (topics) => set({ outline: topics }),
   setImageModel: (model) => set({ imageModel: model }),
   setPresentationStyle: (style) => set({ presentationStyle: style }),
+  setTeachingStyle: (style) => set({ teachingStyle: style }),
+  setAudienceType: (audience) => set({ audienceType: audience }),
   setSavingStatus: (status) => set({ savingStatus: status }),
   setIsPresenting: (isPresenting) => set({ isPresenting }),
   setCurrentSlideIndex: (index) => set({ currentSlideIndex: index }),

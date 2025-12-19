@@ -4,7 +4,12 @@ import {
   generatePresentationWithAgent,
   type AgentEvent,
   type AgentConfig,
+  type PedagogyConfig,
 } from "@/lib/agents/slide-agent";
+import { 
+  type TeachingStyle, 
+  type AudienceType 
+} from "@/states/presentation-state";
 
 interface AgentRequest {
   title: string;
@@ -12,6 +17,8 @@ interface AgentRequest {
   language: string;
   tone: string;
   config?: Partial<AgentConfig>;
+  teachingStyle?: TeachingStyle;
+  audienceType?: AudienceType;
 }
 
 const DEFAULT_AGENT_CONFIG: AgentConfig = {
@@ -29,7 +36,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { outline, language, tone, config: userConfig } =
+    const { outline, language, tone, config: userConfig, teachingStyle, audienceType } =
       (await req.json()) as AgentRequest;
 
     if (!outline || !Array.isArray(outline) || !language) {
@@ -42,6 +49,12 @@ export async function POST(req: Request) {
     const config: AgentConfig = {
       ...DEFAULT_AGENT_CONFIG,
       ...userConfig,
+    };
+
+    // Build pedagogy configuration with defaults
+    const pedagogy: PedagogyConfig = {
+      teachingStyle: teachingStyle ?? "concept-first",
+      audienceType: audienceType ?? "professional",
     };
 
     // Create SSE stream for real-time token streaming
@@ -63,7 +76,8 @@ export async function POST(req: Request) {
             language,
             tone,
             config,
-            (event) => sendEvent(event) // Forward ALL events including tokens
+            (event) => sendEvent(event), // Forward ALL events including tokens
+            pedagogy // Pass pedagogy configuration
           );
 
           // The agent already sends slide_complete and agent_done events

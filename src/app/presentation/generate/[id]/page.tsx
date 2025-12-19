@@ -42,7 +42,6 @@ export default function PresentationGenerateWithIdPage() {
   // Track if this is a fresh navigation or a revisit
   const initialLoadComplete = useRef(false);
   const generationStarted = useRef(false);
-  const initialIsGeneratingOutline = useRef<boolean | null>(null);
 
   // Use React Query to fetch presentation data
   const { data: presentationData, isLoading: isLoadingPresentation } = useQuery(
@@ -58,13 +57,6 @@ export default function PresentationGenerateWithIdPage() {
       enabled: !!id,
     }
   );
-
-  // Capture the initial isGeneratingOutline value on first render
-  useEffect(() => {
-    if (initialIsGeneratingOutline.current === null) {
-      initialIsGeneratingOutline.current = isGeneratingOutline;
-    }
-  }, [isGeneratingOutline]);
 
   // This effect handles the immediate startup of generation upon first mount
   // only if we're coming fresh from the dashboard (isGeneratingOutline === true)
@@ -83,11 +75,13 @@ export default function PresentationGenerateWithIdPage() {
       return;
     }
 
-    // Check the initial value captured on first render
-    // If isGeneratingOutline was true initially but generation hasn't been started yet,
-    // this indicates we just came from the dashboard and should start generation
-    if (initialIsGeneratingOutline.current === true && !generationStarted.current) {
-      console.log("Starting outline generation after navigation");
+    // Check if isGeneratingOutline is true (set by dashboard before navigation)
+    // OR if we have presentation input but no outline yet
+    const { presentationInput } = usePresentationState.getState();
+    const shouldAutoGenerate = isGeneratingOutline || (presentationInput && presentationInput.trim().length > 0);
+    
+    if (shouldAutoGenerate && !generationStarted.current) {
+      console.log("Starting outline generation after navigation", { isGeneratingOutline, presentationInput });
       generationStarted.current = true;
 
       // Give the component time to fully mount and establish connections
@@ -170,8 +164,13 @@ export default function PresentationGenerateWithIdPage() {
   ]);
 
   const handleGenerate = () => {
-    router.push(`/presentation/${id}`);
+    // Start generation FIRST, then navigate
+    // This ensures isGeneratingPresentation is true when the presentation page loads
     startPresentationGeneration();
+    // Small delay to ensure state is set before navigation
+    setTimeout(() => {
+      router.push(`/presentation/${id}`);
+    }, 50);
   };
 
   if (isLoadingPresentation) {

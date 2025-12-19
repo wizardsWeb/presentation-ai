@@ -5,13 +5,41 @@ import { ChatOpenAI } from "@langchain/openai";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { RunnableSequence } from "@langchain/core/runnables";
 import { StringOutputParser } from "@langchain/core/output_parsers";
+import { 
+  type TeachingStyle, 
+  type AudienceType 
+} from "@/states/presentation-state";
 
 interface SlidesRequest {
   title: string; // Presentation title
   outline: string[]; // Array of main topics with markdown content
   language: string; // Language to use for the slides
   tone: string; // Style for image queries (optional)
+  teachingStyle?: TeachingStyle; // Teaching approach
+  audienceType?: AudienceType; // Target audience
 }
+
+// Get teaching style content instructions
+const getTeachingStyleContent = (style: TeachingStyle): string => {
+  const styleMap: Record<TeachingStyle, string> = {
+    "concept-first": "Structure each slide with: definition/concept first, then detailed explanation, followed by concrete examples. Build understanding from fundamentals.",
+    "example-first": "Start each slide with a compelling real-world example or case study, then identify patterns, and finally reveal the underlying concept or principle.",
+    "storytelling": "Frame content as a narrative with hooks, challenges, and resolutions. Use storytelling elements: characters, conflict, journey, and transformation.",
+    "data-driven": "Lead with data, statistics, and evidence. Include charts where appropriate. Support every claim with quantifiable information and analysis.",
+  };
+  return styleMap[style];
+};
+
+// Get audience-specific content adjustments
+const getAudienceContent = (audience: AudienceType): string => {
+  const audienceMap: Record<AudienceType, string> = {
+    "school": "Use simple, age-appropriate language. Include fun, relatable examples from everyday life. Add engaging visuals and interactive elements. Avoid technical jargon.",
+    "college": "Include academic depth, theoretical frameworks, and references to research. Balance theory with practical applications. Encourage critical analysis and discussion.",
+    "training": "Focus on practical, actionable skills. Include exercises, scenarios, and hands-on examples. Emphasize real-world workplace applications and immediate takeaways.",
+    "professional": "Be concise and executive-friendly. Focus on strategic implications, ROI, and business value. Use professional terminology and respect the audience's time.",
+  };
+  return audienceMap[audience];
+};
 
 const slidesTemplate = `
 You are an expert presentation designer.Your task is to create an engaging presentation in XML format.
@@ -29,12 +57,18 @@ You are an expert presentation designer.Your task is to create an engaging prese
 - Tone: {TONE}
 - Total Slides: {TOTAL_SLIDES}
 
+## TEACHING APPROACH
+{TEACHING_STYLE_INSTRUCTIONS}
+
+## TARGET AUDIENCE
+{AUDIENCE_INSTRUCTIONS}
+
 ## PRESENTATION STRUCTURE
 \`\`\`xml
 <PRESENTATION>
 
-<!--Every slide must follow this structure (layout determines where the image appears) -->
-<SECTION layout="left" | "right" | "vertical">
+<!--Every slide must follow this structure (layout determines where the image appears, section identifies the slide's role) -->
+<SECTION layout="left" | "right" | "vertical" section="introduction" | "content" | "example" | "activity" | "summary">
   <!-- Required: include ONE layout component per slide -->
   <!-- Required: include at least one detailed image query -->
 </SECTION>
@@ -49,6 +83,14 @@ Vary the layout attribute in each SECTION tag to control image placement:
 - layout="left" - Root image appears on the left side
 - layout="right" - Root image appears on the right side
 - layout="vertical" - Root image appears at the top
+
+## SECTION TYPES (section attribute)
+Assign an appropriate section type to each slide based on its pedagogical role:
+- section="introduction" - Opening slides (hook, overview, agenda) - use for first 1-2 slides
+- section="content" - Main body slides with core information and concepts
+- section="example" - Slides with case studies, demonstrations, or practical illustrations
+- section="activity" - Interactive elements, exercises, or audience engagement points
+- section="summary" - Recap and conclusion slides - use for final 1-2 slides
 
 Use all three layouts throughout the presentation for visual variety.
 
@@ -162,6 +204,10 @@ For each outline point:
 6. Vary the SECTION layout attribute (left/right/vertical) throughout the presentation
    - Use each layout (left, right, vertical) at least twice
    - Don't use the same layout more than twice in a row
+7. ALWAYS include the section attribute on every SECTION tag
+   - First slide: section="introduction"
+   - Last slide: section="summary"
+   - Middle slides: section="content", "example", or "activity" based on content
 
 Now create a complete XML presentation with {TOTAL_SLIDES} slides that significantly expands on the outline.
 `;
@@ -180,7 +226,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { title, outline, language, tone } =
+    const { title, outline, language, tone, teachingStyle, audienceType } =
       (await req.json()) as SlidesRequest;
 
     if (!title || !outline || !Array.isArray(outline) || !language) {
@@ -189,6 +235,10 @@ export async function POST(req: Request) {
         { status: 400 },
       );
     }
+
+    // Use defaults if pedagogy params not provided
+    const finalTeachingStyle: TeachingStyle = teachingStyle ?? "concept-first";
+    const finalAudienceType: AudienceType = audienceType ?? "professional";
 
     const prompt = PromptTemplate.fromTemplate(slidesTemplate);
     const stringOutputParser = new StringOutputParser();
@@ -199,7 +249,9 @@ export async function POST(req: Request) {
       LANGUAGE: language,
       TONE: tone,
       OUTLINE_FORMATTED: outline.join("\n\n"),
-      TOTAL_SLIDES: outline.length, // +2 for title and conclusion slides
+      TOTAL_SLIDES: outline.length,
+      TEACHING_STYLE_INSTRUCTIONS: getTeachingStyleContent(finalTeachingStyle),
+      AUDIENCE_INSTRUCTIONS: getAudienceContent(finalAudienceType),
     });
 
     return LangChainAdapter.toDataStreamResponse(stream);

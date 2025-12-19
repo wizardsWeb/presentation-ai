@@ -32,6 +32,8 @@ export function PresentationGenerationManager() {
     setIsGeneratingPresentation,
     setYoutubeVideo,
     setIsSearchingYouTube,
+    generationMode: _generationMode,
+    setExpectedSlideCount,
   } = usePresentationState();
 
   // Create a ref for the streaming parser to persist between renders
@@ -44,6 +46,11 @@ export function PresentationGenerationManager() {
   // Track YouTube search state
   const youtubeVideoRef = useRef<YouTubeSearchResult["video"] | null>(null);
   const videoSlideInserted = useRef(false);
+
+  // Parallel generation refs
+  const parallelAbortControllersRef = useRef<Map<number, AbortController>>(new Map());
+  const parallelSlideParsersRef = useRef<Map<number, SlideParser>>(new Map());
+  const isParallelGeneratingRef = useRef(false);
 
   // Create buffer refs to store the latest content
   // Note: The types should match what setOutline and setSlides expect
@@ -237,27 +244,32 @@ export function PresentationGenerationManager() {
         return;
       }
 
-      // Split by newline followed by # (heading marker)
+      // Split by newline followed by # (heading marker) or [section_type] marker
       // This handles both complete and partial sections
       const lines = text.split("\n");
       const outlineItems: string[] = [];
       let currentSection: string[] = [];
 
       for (const line of lines) {
-        // If line starts with #, it's a new section
-        if (line.trim().startsWith("# ")) {
+        const trimmedLine = line.trim();
+        
+        // Check for section marker format: [type] # Heading or just # Heading
+        const sectionMatch = trimmedLine.match(/^\[(introduction|content|example|activity|summary)\]\s*#\s*/);
+        const isHeading = trimmedLine.startsWith("# ") || sectionMatch;
+        
+        if (isHeading) {
           // Save previous section if it exists
           if (currentSection.length > 0) {
             outlineItems.push(currentSection.join("\n").trim());
           }
-          // Start new section
-          currentSection = [line.trim()];
+          // Start new section - keep the full line including section marker
+          currentSection = [trimmedLine];
         } else if (currentSection.length > 0) {
           // Continue current section
           currentSection.push(line);
-        } else if (line.trim().length > 0) {
+        } else if (trimmedLine.length > 0) {
           // If we have content but no section started yet, create one
-          currentSection = [`# ${line.trim()}`];
+          currentSection = [`# ${trimmedLine}`];
         }
       }
 
@@ -296,7 +308,7 @@ export function PresentationGenerationManager() {
   // Watch for outline generation start
   useEffect(() => {
     const startOutlineGeneration = async (): Promise<void> => {
-      const { presentationInput, numSlides, language } =
+      const { presentationInput, numSlides, language, teachingStyle, audienceType } =
         usePresentationState.getState();
       
       // Guard against multiple simultaneous generations
@@ -312,6 +324,8 @@ export function PresentationGenerationManager() {
           prompt: presentationInput,
           numberOfCards: numSlides,
           language,
+          teachingStyle,
+          audienceType,
         });
         setIsGeneratingOutline(true);
 
@@ -327,6 +341,8 @@ export function PresentationGenerationManager() {
             prompt: presentationInput ?? "",
             numberOfCards: numSlides,
             language,
+            teachingStyle,
+            audienceType,
           },
         });
       } catch (error) {
@@ -341,6 +357,256 @@ export function PresentationGenerationManager() {
 
     void startOutlineGeneration();
   }, [shouldStartOutlineGeneration, setIsGeneratingOutline, setShouldStartOutlineGeneration]);
+
+  // ============================================
+  // PARALLEL SLIDE GENERATION (Quick Mode)
+  // ============================================
+  
+  // Generate a single slide with streaming
+  const generateSingleSlideParallel = useCallback(async (
+    slideIndex: number,
+    outlineItem: string,
+    title: string,
+    language: string,
+    tone: string,
+    totalSlides: number,
+    previousLayouts: string[],
+    teachingStyle: string,
+    audienceType: string,
+    _slidesArray: PlateSlide[],
+  ): Promise<PlateSlide | null> => {
+    const abortController = new AbortController();
+    parallelAbortControllersRef.current.set(slideIndex, abortController);
+    
+    // Initialize parser for this slide
+    const parser = new SlideParser();
+    parallelSlideParsersRef.current.set(slideIndex, parser);
+
+    try {
+      const response = await fetch("/api/presentation/generate-slide", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          slideIndex,
+          totalSlides,
+          outlineItem,
+          title,
+          language,
+          tone,
+          previousLayouts,
+          teachingStyle,
+          audienceType,
+        }),
+        signal: abortController.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to generate slide ${slideIndex + 1}`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("No response body");
+
+      const decoder = new TextDecoder();
+      let accumulatedContent = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        
+        // Parse the AI SDK stream format
+        const lines = chunk.split("\n");
+        for (const line of lines) {
+          if (line.startsWith("0:")) {
+            try {
+              // Extract the text content from the stream format
+              const jsonStr = line.slice(2);
+              const text = JSON.parse(jsonStr) as string;
+              accumulatedContent += text;
+              
+              // Try to parse partial slide for live preview
+              try {
+                parser.reset();
+                parser.parseChunk(accumulatedContent);
+                const slides = parser.getAllSlides();
+                if (slides.length > 0 && slides[0]) {
+                  const slide = { ...slides[0], isGenerating: true };
+                  // Update this specific slide - get fresh state to avoid stale data
+                  const currentSlides = usePresentationState.getState().slides;
+                  if (currentSlides.length > slideIndex) {
+                    const updatedSlides = [...currentSlides];
+                    updatedSlides[slideIndex] = slide;
+                    setSlides(updatedSlides);
+                  }
+                }
+              } catch {
+                // Ignore parsing errors during streaming
+              }
+            } catch {
+              // Ignore JSON parse errors
+            }
+          }
+        }
+      }
+
+      // Final parse
+      parser.reset();
+      parser.parseChunk(accumulatedContent);
+      parser.finalize();
+      const slides = parser.getAllSlides();
+      
+      if (slides.length > 0 && slides[0]) {
+        const finalSlide = { ...slides[0], isGenerating: false };
+        return finalSlide;
+      }
+      
+      throw new Error("No slide parsed from response");
+    } catch (error) {
+      if ((error as Error).name === "AbortError") {
+        return null;
+      }
+      
+      console.error(`Error generating slide ${slideIndex}:`, error);
+      
+      // Create a placeholder slide on error
+      const placeholderSlide: PlateSlide = {
+        id: nanoid(),
+        layoutType: "vertical",
+        isGenerating: false,
+        content: [
+          {
+            id: nanoid(),
+            type: "h2",
+            children: [{ text: `Slide ${slideIndex + 1}` }],
+          },
+          {
+            id: nanoid(),
+            type: "p",
+            children: [{ text: "Content generation failed. Please try regenerating." }],
+          },
+        ],
+      };
+      
+      return placeholderSlide;
+    } finally {
+      parallelAbortControllersRef.current.delete(slideIndex);
+      parallelSlideParsersRef.current.delete(slideIndex);
+    }
+  }, [setSlides]);
+
+  // Generate all slides in parallel with concurrency limit
+  const generateSlidesParallel = useCallback(async (
+    outline: string[],
+    title: string,
+    language: string,
+    tone: string,
+    teachingStyle: string,
+    audienceType: string,
+  ) => {
+    isParallelGeneratingRef.current = true;
+    
+    // Set expected slide count IMMEDIATELY for UI feedback
+    setExpectedSlideCount(outline.length);
+    
+    // Initialize placeholder slides for IMMEDIATE UI feedback
+    const placeholderSlides: PlateSlide[] = outline.map((item, index) => {
+      // Extract title from outline item (handles [section] # Title format)
+      const titleMatch = item.match(/(?:\[[\w-]+\]\s*)?#\s*(.+?)(?:\n|$)/);
+      const slideTitle = titleMatch?.[1]?.trim() ?? `Slide ${index + 1}`;
+      
+      // Extract bullet points from outline for preview
+      const bulletMatches = item.match(/^[-•]\s*(.+)$/gm);
+      const bulletPoints = bulletMatches ? bulletMatches.slice(0, 2).map(b => b.replace(/^[-•]\s*/, '')) : [];
+      
+      const content: PlateSlide["content"] = [
+        {
+          id: nanoid(),
+          type: "h1" as const,
+          children: [{ text: slideTitle }],
+        },
+        {
+          id: nanoid(),
+          type: "p" as const,
+          children: [{ text: bulletPoints[0] ?? "Generating content...", generating: true }],
+        },
+      ];
+      
+      // Add second bullet point if available
+      if (bulletPoints[1]) {
+        content.push({
+          id: nanoid(),
+          type: "p" as const,
+          children: [{ text: bulletPoints[1], generating: true }],
+        });
+      }
+      
+      return {
+        id: nanoid(),
+        layoutType: "vertical" as const,
+        isGenerating: true,
+        content,
+      };
+    });
+    
+    // Show placeholders IMMEDIATELY - don't wait for any API call
+    setSlides(placeholderSlides);
+    
+    // Use a mutable ref to track slides array for real-time updates
+    const slidesArrayRef = { current: [...placeholderSlides] };
+    
+    // Start ALL slides immediately for maximum perceived speed
+    // Browser will handle connection pooling (typically 6 concurrent connections)
+    const slidePromises = outline.map(async (outlineItem, index) => {
+      if (!outlineItem) return null;
+      
+      console.log(`Starting generation for slide ${index + 1}/${outline.length}`);
+      
+      const slide = await generateSingleSlideParallel(
+        index,
+        outlineItem,
+        title,
+        language,
+        tone,
+        outline.length,
+        [], // Don't wait for previous layouts - let each slide be independent
+        teachingStyle,
+        audienceType,
+        slidesArrayRef.current,
+      );
+      
+      if (slide) {
+        slidesArrayRef.current[index] = slide;
+        // Update slides immediately as each completes
+        setSlides([...slidesArrayRef.current]);
+        console.log(`Completed slide ${index + 1}/${outline.length}`);
+      }
+      
+      return slide;
+    });
+    
+    // Wait for all slides to complete
+    await Promise.all(slidePromises);
+    
+    // Return final slides (filter out any nulls)
+    const finalSlides = slidesArrayRef.current.filter((s): s is PlateSlide => s !== null && !s.isGenerating);
+    isParallelGeneratingRef.current = false;
+    
+    return finalSlides;
+  }, [generateSingleSlideParallel, setSlides, setExpectedSlideCount]);
+
+  // Cancel parallel generation
+  const cancelParallelGeneration = useCallback(() => {
+    isParallelGeneratingRef.current = false;
+    parallelAbortControllersRef.current.forEach(controller => controller.abort());
+    parallelAbortControllersRef.current.clear();
+    parallelSlideParsersRef.current.clear();
+  }, []);
+
+  // ============================================
+  // SEQUENTIAL SLIDE GENERATION (Original)
+  // ============================================
 
   const { completion: presentationCompletion, complete: generatePresentation } =
     useCompletion({
@@ -439,6 +705,11 @@ export function PresentationGenerationManager() {
         language,
         presentationStyle,
         currentPresentationTitle,
+        teachingStyle,
+        audienceType,
+        currentPresentationId,
+        theme,
+        generationMode: currentGenerationMode,
       } = usePresentationState.getState();
 
       // Reset the parser and YouTube state before starting a new generation
@@ -456,23 +727,77 @@ export function PresentationGenerationManager() {
         void searchYouTubeVideo(searchTopic, language);
       }
 
-      // Start the RAF cycle for slide updates
-      if (slidesRafIdRef.current === null) {
-        slidesRafIdRef.current = requestAnimationFrame(updateSlidesWithRAF);
+      // Use parallel generation for "quick" mode, sequential for "research"
+      if (currentGenerationMode === "quick") {
+        console.log("Using PARALLEL slide generation (quick mode)");
+        
+        // Parallel generation - each slide generates independently
+        void (async () => {
+          try {
+            const slides = await generateSlidesParallel(
+              outline,
+              presentationInput ?? currentPresentationTitle ?? "",
+              language,
+              presentationStyle,
+              teachingStyle ?? "concept-first",
+              audienceType ?? "professional",
+            );
+
+            // Insert YouTube video slide if available
+            let finalSlides = slides;
+            const { youtubeVideo } = usePresentationState.getState();
+            if (youtubeVideo && !videoSlideInserted.current && slides.length >= 1) {
+              finalSlides = insertVideoSlideIfAvailable(slides);
+            }
+
+            setSlides(finalSlides);
+
+            // Save to database
+            if (currentPresentationId) {
+              void updatePresentation({
+                id: currentPresentationId,
+                content: { slides: finalSlides },
+                title: currentPresentationTitle ?? "",
+                theme,
+                youtubeVideoId: youtubeVideo?.videoId,
+                youtubeVideoTitle: youtubeVideo?.title,
+                youtubeVideoChannel: youtubeVideo?.channelTitle,
+              });
+            }
+
+            toast.success("Presentation generated!");
+          } catch (error) {
+            console.error("Parallel generation error:", error);
+            toast.error("Failed to generate presentation");
+          } finally {
+            setIsGeneratingPresentation(false);
+            setShouldStartPresentationGeneration(false);
+          }
+        })();
+      } else {
+        console.log("Using SEQUENTIAL slide generation (research mode)");
+        
+        // Sequential generation - all slides in one stream (original behavior)
+        // Start the RAF cycle for slide updates
+        if (slidesRafIdRef.current === null) {
+          slidesRafIdRef.current = requestAnimationFrame(updateSlidesWithRAF);
+        }
+
+        void generatePresentation(presentationInput ?? "", {
+          body: {
+            title: presentationInput ?? currentPresentationTitle ?? "",
+            outline,
+            language,
+            tone: presentationStyle,
+            teachingStyle,
+            audienceType,
+          },
+        });
       }
-
-      void generatePresentation(presentationInput ?? "", {
-        body: {
-          title: presentationInput ?? currentPresentationTitle ?? "",
-          outline,
-          language,
-          tone: presentationStyle,
-        },
-      });
     }
-  }, [shouldStartPresentationGeneration, searchYouTubeVideo, setYoutubeVideo]);
+  }, [shouldStartPresentationGeneration, searchYouTubeVideo, setYoutubeVideo, generateSlidesParallel, insertVideoSlideIfAvailable, setSlides, setIsGeneratingPresentation, setShouldStartPresentationGeneration]);
 
-  // Clean up RAF on unmount
+  // Clean up RAF and parallel generation on unmount
   useEffect(() => {
     return () => {
       if (slidesRafIdRef.current !== null) {
@@ -484,8 +809,11 @@ export function PresentationGenerationManager() {
         cancelAnimationFrame(outlineRafIdRef.current);
         outlineRafIdRef.current = null;
       }
+
+      // Cancel any ongoing parallel generation
+      cancelParallelGeneration();
     };
-  }, []);
+  }, [cancelParallelGeneration]);
 
   return null;
 }
