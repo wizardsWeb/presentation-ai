@@ -27,7 +27,7 @@ import { getSlideTransition } from "@/lib/presentation/animations";
 
 // Section type configuration for badges - clean, minimal styling
 const sectionConfig: Record<SectionType, { label: string; color: string; bgColor: string; borderColor: string }> = {
-  introduction: { label: "Introduction", color: "text-blue-700 dark:text-blue-300", bgColor: "bg-blue-50 dark:bg-blue-950/40", borderColor: "border-blue-200 dark:border-blue-800" },
+  introduction: { label: "Introduction", color: "text-white dark:text-white", bgColor: "bg-white/10 dark:bg-white/10", borderColor: "border-white/20 dark:border-white/20" },
   content: { label: "Content", color: "text-slate-700 dark:text-slate-300", bgColor: "bg-slate-50 dark:bg-slate-900/40", borderColor: "border-slate-200 dark:border-slate-700" },
   example: { label: "Example", color: "text-emerald-700 dark:text-emerald-300", bgColor: "bg-emerald-50 dark:bg-emerald-950/40", borderColor: "border-emerald-200 dark:border-emerald-800" },
   activity: { label: "Activity", color: "text-amber-700 dark:text-amber-300", bgColor: "bg-amber-50 dark:bg-amber-950/40", borderColor: "border-amber-200 dark:border-amber-800" },
@@ -137,7 +137,7 @@ export function SlideContainer({
         )}
       >
         {!isPresenting && (
-          <div className="absolute left-4 top-2 z-[100] flex opacity-0 transition-opacity duration-200 group-hover/card-container:opacity-100">
+          <div className="absolute left-4 top-2 z-[100] flex opacity-0 transition-opacity duration-200 group-hover/card-container:opacity-100 no-print">
             <Button
               variant="ghost"
               size="icon"
@@ -191,7 +191,7 @@ export function SlideContainer({
             )}>
               <span className={cn(
                 "h-1.5 w-1.5 rounded-full",
-                currentSlide.sectionType === "introduction" && "bg-blue-500",
+                currentSlide.sectionType === "introduction" && "bg-white text-black",
                 currentSlide.sectionType === "content" && "bg-slate-500",
                 currentSlide.sectionType === "example" && "bg-emerald-500",
                 currentSlide.sectionType === "activity" && "bg-amber-500",
@@ -226,7 +226,7 @@ export function SlideContainer({
                 key={slideIndex}
                 className={`h-full flex-1 rounded-full transition-all ${
                   slideIndex === currentSlideIndex
-                    ? "bg-primary shadow-sm"
+                    ? "bg-white text-black shadow-sm"
                     : "bg-white/20 hover:bg-white/40"
                 }`}
                 onClick={() => setCurrentSlideIndex(slideIndex)}

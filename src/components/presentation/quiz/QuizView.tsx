@@ -75,9 +75,9 @@ export function QuizView({ onClose }: QuizViewProps) {
             </p>
           </div>
           
-          <div className="flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2">
-            <Trophy className="h-4 w-4 text-primary" />
-            <span className="text-xl font-bold text-primary">{percentage}%</span>
+          <div className="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2">
+            <Trophy className="h-4 w-4 text-white" />
+            <span className="text-xl font-bold text-white">{percentage}%</span>
           </div>
         </div>
 
@@ -144,7 +144,7 @@ export function QuizView({ onClose }: QuizViewProps) {
       <div className="border-b p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Target className="h-5 w-5 text-primary" />
+            <Target className="h-5 w-5 text-white" />
             <span className="font-medium">
               Question {quiz.currentQuestionIndex + 1} of {quiz.questions.length}
             </span>
@@ -184,9 +184,9 @@ export function QuizView({ onClose }: QuizViewProps) {
                     key={idx}
                     onClick={() => answerQuizQuestion(quiz.currentQuestionIndex, idx)}
                     className={cn(
-                      "flex w-full items-center gap-3 rounded-lg border p-4 text-left transition-all hover:border-primary/50",
+                      "flex w-full items-center gap-3 rounded-lg border p-4 text-left transition-all hover:border-white/50",
                       isSelected
-                        ? "border-primary bg-primary/5 ring-1 ring-primary"
+                        ? "border-white bg-white/5 ring-1 ring-white"
                         : "border-muted hover:bg-muted/30"
                     )}
                   >
@@ -194,7 +194,7 @@ export function QuizView({ onClose }: QuizViewProps) {
                       className={cn(
                         "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold transition-colors",
                         isSelected
-                          ? "bg-primary text-primary-foreground"
+                          ? "bg-white text-black"
                           : "bg-muted"
                       )}
                     >
@@ -206,7 +206,7 @@ export function QuizView({ onClose }: QuizViewProps) {
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
                       >
-                        <Sparkles className="h-4 w-4 text-primary" />
+                        <Sparkles className="h-4 w-4 text-white" />
                       </motion.div>
                     )}
                   </button>
@@ -238,9 +238,9 @@ export function QuizView({ onClose }: QuizViewProps) {
               className={cn(
                 "h-2 w-2 rounded-full transition-all",
                 idx === quiz.currentQuestionIndex
-                  ? "w-4 bg-primary"
+                  ? "w-4 bg-white"
                   : quiz.userAnswers[idx] !== null
-                  ? "bg-primary/50"
+                  ? "bg-white/50"
                   : "bg-muted"
               )}
               aria-label={`Go to question ${idx + 1}`}

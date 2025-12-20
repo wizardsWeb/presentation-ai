@@ -60,18 +60,18 @@ export const OutlineItem = memo(function OutlineItem({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "group flex items-center gap-4 rounded-md bg-muted p-4",
+        "group flex items-center gap-4 rounded-lg border border-white/20 bg-white/5 p-4 transition-all hover:border-white/30 hover:bg-white/10",
         isDragging && "opacity-50"
       )}
     >
       <div
         {...attributes}
         {...listeners}
-        className="cursor-move text-muted-foreground hover:text-foreground"
+        className="cursor-move text-gray-400 hover:text-white transition-colors"
       >
-        <GripVertical size={20} />
+        <GripVertical size={18} />
       </div>
-      <span className="min-w-[1.5rem] text-indigo-400">{index}</span>
+      <span className="min-w-[1.5rem] text-sm font-medium text-white">{index}</span>
       <div className="flex-1">
         <ProseMirrorEditor
           content={editedTitle}
@@ -84,9 +84,10 @@ export const OutlineItem = memo(function OutlineItem({
       </div>
       <button
         onClick={() => onDelete(id)}
-        className="text-muted-foreground opacity-0 transition-opacity hover:text-red-400 group-hover:opacity-100"
+        className="text-gray-400 opacity-0 transition-all hover:text-red-400 group-hover:opacity-100"
+        title="Delete card"
       >
-        <X size={20} />
+        <X size={18} />
       </button>
     </div>
   );

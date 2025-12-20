@@ -68,12 +68,12 @@ export function ThemeSettings() {
   const isDark = resolvedTheme === "dark";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <Label className="text-sm font-medium">Theme & Layout</Label>
+          <Label className="text-sm font-semibold text-white">Theme & Layout</Label>
           <ThemeModal>
-            <Button variant={"link"}>More Themes</Button>
+            <Button variant={"link"} className="text-white hover:text-white/80">More Themes</Button>
           </ThemeModal>
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -153,18 +153,18 @@ export function ThemeSettings() {
         </div>
       </div>
 
-      <div className="space-y-4">
-        <Label className="text-sm font-medium">Image Generation Model</Label>
+      <div className="space-y-3">
+        <Label className="text-sm font-semibold text-white">Image Generation Model</Label>
         <Select
           value={imageModel || "black-forest-labs/FLUX.1-schnell-Free"}
           onValueChange={(value) => setImageModel(value as ImageModelList)}
         >
-          <SelectTrigger>
+          <SelectTrigger className="bg-white/5 border-white/20 text-white">
             <SelectValue placeholder="Select image model" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-[#1f1f1f] border-white/20 text-white">
             {IMAGE_MODELS.map((model) => (
-              <SelectItem key={model.value} value={model.value}>
+              <SelectItem key={model.value} value={model.value} className="text-white focus:bg-white/10">
                 {model.label}
               </SelectItem>
             ))}
@@ -172,15 +172,15 @@ export function ThemeSettings() {
         </Select>
       </div>
 
-      <div className="space-y-4">
-        <Label className="text-sm font-medium">Presentation Style</Label>
+      <div className="space-y-3">
+        <Label className="text-sm font-semibold text-white">Presentation Style</Label>
         <Select defaultValue="professional">
-          <SelectTrigger>
+          <SelectTrigger className="bg-white/5 border-white/20 text-white">
             <SelectValue placeholder="Select style" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-[#1f1f1f] border-white/20 text-white">
             {PRESENTATION_STYLES.map((style) => (
-              <SelectItem key={style.value} value={style.value}>
+              <SelectItem key={style.value} value={style.value} className="text-white focus:bg-white/10">
                 {style.label}
               </SelectItem>
             ))}
@@ -189,8 +189,8 @@ export function ThemeSettings() {
       </div>
 
       {/* Pedagogy Settings */}
-      <div className="space-y-4 border-t pt-6">
-        <Label className="text-sm font-medium">Teaching Style</Label>
+      <div className="space-y-4 border-t border-white/10 pt-6">
+        <Label className="text-sm font-semibold text-white">Teaching Style</Label>
         <RadioGroup
           value={teachingStyle}
           onValueChange={(value) => setTeachingStyle(value as TeachingStyle)}
@@ -200,16 +200,16 @@ export function ThemeSettings() {
             <label
               key={style.value}
               className={cn(
-                "flex cursor-pointer items-start space-x-3 rounded-lg border p-3 transition-colors",
+                "flex cursor-pointer items-start space-x-3 rounded-lg border p-4 transition-all",
                 teachingStyle === style.value
-                  ? "border-primary bg-primary/5"
-                  : "border-muted hover:border-primary/50"
+                  ? "border-white/40 bg-white/10"
+                  : "border-white/20 bg-white/5 hover:border-white/30 hover:bg-white/10"
               )}
             >
-              <RadioGroupItem value={style.value} className="mt-0.5" />
+              <RadioGroupItem value={style.value} className="mt-0.5 text-white" />
               <div className="space-y-1">
-                <div className="text-sm font-medium">{style.label}</div>
-                <div className="text-xs text-muted-foreground">
+                <div className="text-sm font-medium text-white">{style.label}</div>
+                <div className="text-xs text-gray-400">
                   {style.description}
                 </div>
               </div>
@@ -218,39 +218,38 @@ export function ThemeSettings() {
         </RadioGroup>
       </div>
 
-      <div className="space-y-4">
-        <Label className="text-sm font-medium">Target Audience</Label>
+      <div className="space-y-3">
+        <Label className="text-sm font-semibold text-white">Target Audience</Label>
         <Select
           value={audienceType}
           onValueChange={(value) => setAudienceType(value as AudienceType)}
         >
-          <SelectTrigger>
+          <SelectTrigger className="bg-white/5 border-white/20 text-white">
             <SelectValue placeholder="Select audience" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-[#1f1f1f] border-white/20 text-white">
             {AUDIENCE_TYPES.map((audience) => (
-              <SelectItem key={audience.value} value={audience.value}>
-                <div className="flex flex-col">
-                  <span>{audience.label}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {audience.description}
-                  </span>
-                </div>
+              <SelectItem 
+                key={audience.value} 
+                value={audience.value} 
+                className="text-white focus:bg-white/10"
+              >
+                {audience.label}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
 
-      <div className="space-y-4">
-        <Label className="text-sm font-medium">Content Language</Label>
+      <div className="space-y-3">
+        <Label className="text-sm font-semibold text-white">Content Language</Label>
         <Select value={language} onValueChange={setLanguage}>
-          <SelectTrigger>
+          <SelectTrigger className="bg-white/5 border-white/20 text-white">
             <SelectValue placeholder="Select language" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-[#1f1f1f] border-white/20 text-white">
             {SUPPORTED_LANGUAGES.map((lang) => (
-              <SelectItem key={lang.code} value={lang.code}>
+              <SelectItem key={lang.code} value={lang.code} className="text-white focus:bg-white/10">
                 {lang.name}
               </SelectItem>
             ))}

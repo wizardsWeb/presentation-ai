@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Wand2 } from "lucide-react";
+import { Wand2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { usePresentationState } from "@/states/presentation-state";
@@ -146,10 +146,12 @@ export default function PresentationGenerateWithIdPage() {
         setPresentationStyle(presentationData.presentation.presentationStyle);
       }
 
-      // Set language if available
+      // Set language if available in presentation
+      // If not in presentation, Zustand state should already have it from first page
       if (presentationData.presentation?.language) {
         setLanguage(presentationData.presentation.language);
       }
+      // Note: If presentation doesn't have language, Zustand state from first page should persist
     }
   }, [
     presentationData,
@@ -190,38 +192,39 @@ export default function PresentationGenerateWithIdPage() {
   }
   return (
     <ThemeBackground>
-      <Button
-        variant="ghost"
-        className="absolute left-4 top-4 flex items-center gap-2 text-muted-foreground hover:text-foreground"
-        onClick={() => router.back()}
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back
-      </Button>
+      <div className="mx-auto max-w-5xl space-y-10 px-6 py-10">
+        <div className="space-y-10">
+          {/* Header Section */}
+          <div className="space-y-6">
+            <Header />
+            <PromptInput />
+          </div>
 
-      <div className="mx-auto max-w-4xl space-y-8 p-8 pt-6">
-        <div className="space-y-8">
-          <Header />
-          <PromptInput />
-          <OutlineList />
+          {/* Outline Section */}
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold text-white">Outline</h2>
+            <OutlineList />
+          </div>
 
-          <div className="!mb-32 space-y-4 rounded-lg border bg-muted/30 p-6">
-            <h2 className="text-lg font-semibold">Customize Theme</h2>
+          {/* Theme & Configuration Section */}
+          <div className="space-y-6 rounded-xl border border-white/10 bg-white/5 p-8">
+            <h2 className="text-xl font-semibold text-white">Customize Presentation</h2>
             <ThemeSettings />
           </div>
-        </div>
-      </div>
 
-      <div className="absolute bottom-0 left-0 right-0 flex justify-center border-t bg-background/80 p-4 backdrop-blur-sm">
-        <Button
-          size="lg"
-          className="gap-2 px-8"
-          onClick={handleGenerate}
-          disabled={isGeneratingPresentation}
-        >
-          <Wand2 className="h-5 w-5" />
-          {isGeneratingPresentation ? "Generating..." : "Generate Presentation"}
-        </Button>
+          {/* Generate Button at End of Form */}
+          <div className="flex justify-center pt-4 pb-8">
+            <Button
+              size="lg"
+              className="gap-2 bg-white px-12 py-6 text-base font-medium text-black hover:bg-white/90 disabled:opacity-50"
+              onClick={handleGenerate}
+              disabled={isGeneratingPresentation}
+            >
+              <Wand2 className="h-5 w-5" />
+              {isGeneratingPresentation ? "Generating Presentation..." : "Generate Presentation"}
+            </Button>
+          </div>
+        </div>
       </div>
     </ThemeBackground>
   );

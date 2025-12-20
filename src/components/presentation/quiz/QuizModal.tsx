@@ -22,11 +22,11 @@ export function QuizModal() {
         style={{ zIndex: 9999 }}
       >
         {/* Header with gradient accent */}
-        <DialogHeader className="relative border-b bg-gradient-to-r from-primary/5 to-primary/10 px-6 py-5">
+        <DialogHeader className="relative border-b bg-gradient-to-r from-white/5 to-white/10 px-6 py-5">
           <div className="absolute inset-0 bg-grid-pattern opacity-5" />
           <DialogTitle className="flex items-center gap-3 text-lg font-semibold">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
-              <Brain className="h-5 w-5 text-primary" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10">
+              <Brain className="h-5 w-5 text-white" />
             </div>
             <div>
               <span>Knowledge Quiz</span>
@@ -47,9 +47,9 @@ export function QuizModal() {
           {isGeneratingQuiz ? (
             <div className="flex h-[400px] flex-col items-center justify-center gap-6 p-8">
               <div className="relative">
-                <div className="absolute inset-0 animate-ping rounded-full bg-primary/20" />
-                <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <div className="absolute inset-0 animate-ping rounded-full bg-white/20" />
+                <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-white/10">
+                  <Loader2 className="h-8 w-8 animate-spin text-white" />
                 </div>
               </div>
               <div className="text-center">

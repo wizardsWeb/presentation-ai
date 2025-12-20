@@ -51,8 +51,8 @@
     --card-foreground: 0 0% 98%;
     --popover: 0 0% 3.9%;
     --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
+    --primary: 0 0% 100%;
+    --primary-foreground: 0 0% 0%;
     --secondary: 0 0% 14.9%;
     --secondary-foreground: 0 0% 98%;
     --muted: 0 0% 14.9%;
@@ -86,5 +86,325 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* Print styles for PDF export - Hide UI elements */
+@media print {
+  /* Hide all navigation and UI elements */
+  header,
+  nav,
+  aside,
+  .sidebar,
+  [class*="sidebar"],
+  [class*="navbar"],
+  [class*="header"],
+  [class*="ChatGPT"],
+  [class*="ChatGPTSidebar"],
+  button:not(.print-keep),
+  .no-print,
+  [class*="floating"],
+  [class*="fixed"]:not(.print-keep),
+  [class*="resize"],
+  [class*="drag"],
+  [class*="grip"],
+  [class*="GripVertical"],
+  [class*="SlidePreview"]:not([class*="slide-wrapper"]),
+  [class*="Resizable"] {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* Full page layout for slides */
+  body {
+    background: white !important;
+    color: black !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Hide the layout wrapper sidebar - but be careful not to hide slides */
+  .flex.h-full > div:first-child:has([class*="Resizable"]),
+  .flex.h-full > div:first-child:has([class*="SlidePreview"]:not([class*="slide-wrapper"])) {
+    display: none !important;
+  }
+
+  /* Main content area - full width and visible */
+  main,
+  .sheet-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: white !important;
+  }
+
+  /* Presentation slides container - make visible */
+  .presentation-slides {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: white !important;
+    display: block !important;
+  }
+
+  /* ThemeBackground and wrapper divs - ensure they don't hide content */
+  [class*="ThemeBackground"],
+  div[class*="flex"],
+  div[class*="max-w"],
+  div[class*="space-y"] {
+    background: white !important;
+    display: block !important;
+    visibility: visible !important;
+    overflow: visible !important;
+  }
+
+  /* Remove all max-width constraints and padding in print */
+  .mx-auto,
+  [class*="mx-auto"],
+  [class*="max-w"],
+  [class*="max-w-5xl"],
+  [class*="max-w-6xl"],
+  [class*="max-w-\[90%\]"] {
+    display: block !important;
+    visibility: visible !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  /* Remove spacing between slides */
+  [class*="space-y"],
+  [class*="space-y-8"] {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Remove padding from content wrappers */
+  [class*="p-8"],
+  [class*="pt-8"],
+  [class*="px-8"] {
+    padding: 0 !important;
+  }
+
+  /* Show slide wrappers - these contain the actual content */
+  .slide-wrapper {
+    page-break-after: always;
+    page-break-inside: avoid;
+    break-after: page;
+    break-inside: avoid;
+    margin: 0 !important;
+    padding: 2cm 1.5cm !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 100vh !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: white !important;
+    display: block !important;
+    visibility: visible !important;
+    position: relative !important;
+  }
+
+  .slide-wrapper:last-child {
+    page-break-after: auto;
+  }
+
+  /* Hide slide preview renderer */
+  [class*="SlidePreviewRenderer"] {
+    display: none !important;
+  }
+
+  /* Show slide containers and all content - remove width constraints */
+  .slide-container,
+  [class*="slide-container"],
+  [class*="slide-container-"] {
+    margin: 0 auto !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: white !important;
+    display: block !important;
+    visibility: visible !important;
+  }
+
+  /* Remove max-width from SlideContainer wrapper */
+  [class*="group/card-container"],
+  [class*="relative w-full"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+
+  /* Show PresentationEditor and Plate content - full width */
+  [class*="presentation-slide"],
+  [data-slide-content="true"],
+  [class*="ProseMirror"],
+  [class*="Plate"],
+  [class*="Editor"] {
+    display: block !important;
+    visibility: visible !important;
+    background: white !important;
+    color: black !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Remove rounded borders and borders from slides in print */
+  [class*="rounded-md"],
+  [class*="border"] {
+    border: none !important;
+    border-radius: 0 !important;
+  }
+
+  /* Ensure all content inside slides is visible */
+  .slide-wrapper *,
+  [class*="slide-container"] *,
+  [data-slide-content="true"] * {
+    visibility: visible !important;
+  }
+
+  /* Hide only specific UI elements inside slides */
+  .slide-wrapper button,
+  .slide-wrapper [class*="no-print"],
+  .slide-wrapper [class*="grip"],
+  .slide-wrapper [class*="drag"] {
+    display: none !important;
+  }
+
+  /* Ensure images and content are visible */
+  img {
+    max-width: 100% !important;
+    height: auto !important;
+    page-break-inside: avoid;
+    display: block !important;
+    visibility: visible !important;
+  }
+
+  /* Text content */
+  p, h1, h2, h3, h4, h5, h6, span, div, li {
+    color: black !important;
+    visibility: visible !important;
+  }
+
+  /* Ensure content is not cut off - remove any transforms or positioning that might shift content */
+  .slide-wrapper,
+  .slide-wrapper * {
+    transform: none !important;
+    left: 0 !important;
+    right: 0 !important;
+  }
+
+  /* Center slide content properly */
+  .slide-wrapper > * {
+    margin-left: auto !important;
+    margin-right: auto !important;
+    width: 100% !important;
+  }
+
+  /* Remove any absolute positioning that might cause shifts */
+  [class*="absolute"]:not([class*="no-print"]) {
+    position: static !important;
+  }
+
+  /* Hide scrollbars but keep content */
+  * {
+    overflow: visible !important;
+  }
+
+  /* Print-friendly colors */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* Page setup - Landscape for presentations with minimal margins */
+  @page {
+    size: A4 landscape;
+    margin: 0.5cm;
+  }
+
+  /* Additional rules to hide any footer elements (browser-specific) */
+  /* Note: Browser footers are controlled by print dialog settings */
+  ::after,
+  ::before {
+    content: none !important;
+  }
+}
+
+/* Print styles for PDF export */
+@media print {
+  /* Hide all UI elements except slides */
+  header,
+  nav,
+  aside,
+  .sidebar,
+  button:not(.print-keep),
+  .no-print,
+  [class*="sidebar"],
+  [class*="navbar"],
+  [class*="header"],
+  [class*="floating"],
+  [class*="fixed"]:not(.print-keep) {
+    display: none !important;
+  }
+
+  /* Full page layout for slides */
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Slide container styling for print */
+  .slide-container,
+  .presentation-slides,
+  .slide-wrapper {
+    page-break-after: always;
+    page-break-inside: avoid;
+    break-after: page;
+    break-inside: avoid;
+    margin: 0;
+    padding: 0;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100vh !important;
+    overflow: visible !important;
+  }
+
+  /* Remove shadows and borders for print */
+  .slide-container {
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  /* Ensure images and content are visible */
+  img {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+
+  /* Hide scrollbars */
+  * {
+    overflow: visible !important;
+  }
+
+  /* Print-friendly colors */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
   }
 }

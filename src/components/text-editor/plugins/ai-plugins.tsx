@@ -137,9 +137,12 @@ ${systemCommon}
 const systemSelecting = `\
 ${systemCommon}
 - <Block> is the block of text containing the user's selection, providing context.
-- Ensure your output can seamlessly fit into the existing <Block> structure.
-- <Selection> is the specific text the user has selected in the block and wants to modify or ask about.
-- Consider the context provided by <Block>, but only modify <Selection>. Your response should be a direct replacement for <Selection>.
+- <Selection> is the specific text the user has selected and wants you to modify. This is your INPUT - the text you must work on.
+- CRITICAL: The user has selected specific text (<Selection>) that they want you to transform. This selected text is your input.
+- When given an instruction (like "make longer", "improve writing", "fix spelling"), apply that transformation ONLY to the <Selection> text.
+- Your response must be a direct replacement for <Selection> that fits seamlessly within <Block>.
+- DO NOT modify any text outside of <Selection>. DO NOT add extra content beyond what replaces <Selection>.
+- The <Selection> text is what you receive as input, and your transformed version is what you output.
 <Block>
 {block}
 </Block>
@@ -167,10 +170,17 @@ NEVER write <Block>.
 {prompt}`;
 
 const userSelecting = `<Reminder>
+The user has selected specific text (<Selection>) that they want you to modify. The <Selection> is your INPUT.
+
 If this is a question, provide a helpful and concise answer about <Selection>.
-If this is an instruction, provide ONLY the text to replace <Selection>. No explanations.
-Ensure it fits seamlessly within <Block>. If <Block> is empty, write ONE random sentence.
-NEVER write <Block> or <Selection>.
+If this is an instruction, apply the instruction to the <Selection> text and provide ONLY the transformed text as output. No explanations, no additional text.
+CRITICAL: 
+- The <Selection> text is your input - this is what you must transform.
+- Your response must be a direct replacement for <Selection> only. 
+- Do not include any text from outside <Selection>.
+- Ensure your replacement fits seamlessly within <Block> and maintains the flow of the surrounding text.
+- Transform ONLY the <Selection> text according to the instruction.
+NEVER write <Block> or <Selection> tags in your response.
 </Reminder>
 {prompt} about <Selection>`;
 

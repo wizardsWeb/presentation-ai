@@ -18,7 +18,7 @@ export function ShareButton() {
       <Button
         variant="ghost"
         size="sm"
-        className="text-muted-foreground hover:text-foreground"
+        className="text-gray-400 hover:text-white border-white/20"
         onClick={() => setIsShareDialogOpen(true)}
       >
         <Share className="mr-1 h-4 w-4" />

@@ -228,15 +228,15 @@ export function RecentPresentations() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Clock className="h-5 w-5 text-primary" />
-            <h2 className="text-xl font-semibold text-foreground">
+            <Clock className="h-5 w-5 text-white" />
+            <h2 className="text-xl font-semibold text-white">
               Recent Presentations
             </h2>
           </div>
           <Button
             variant="ghost"
             disabled
-            className="gap-2 text-primary hover:text-primary/80"
+            className="gap-2 text-white hover:text-white/80"
           >
             View all
             <ChevronRight className="h-4 w-4" />
@@ -300,15 +300,15 @@ export function RecentPresentations() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Clock className="h-5 w-5 text-primary" />
-          <h2 className="text-xl font-semibold text-foreground">
+          <Clock className="h-5 w-5 text-white" />
+          <h2 className="text-xl font-semibold text-white">
             Recent Presentations
           </h2>
         </div>
         <Button
           variant="outline"
           onClick={handleViewAll}
-          className="gap-2 text-primary hover:bg-primary/5 hover:text-primary"
+          className="gap-2 text-white hover:bg-white/10 hover:text-white/80 border-white/20"
         >
           View all
           <ChevronRight className="h-4 w-4" />
@@ -319,7 +319,7 @@ export function RecentPresentations() {
         {presentations.slice(0, 3).map((presentation) => (
           <Card
             key={presentation.id}
-            className="group relative overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-xl"
+            className="group relative overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-xl bg-white/5 border-white/10"
           >
             <div
               className="relative aspect-video bg-muted"
@@ -333,13 +333,13 @@ export function RecentPresentations() {
                   className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                 />
               ) : (
-                <div className="flex h-full w-full items-center justify-center bg-primary/10">
+                <div className="flex h-full w-full items-center justify-center bg-white/10">
                   <Clock
                     className={cn(
                       "h-12 w-12 transition-all",
                       isNavigating === presentation.id
-                        ? "animate-spin text-primary"
-                        : "text-primary/50"
+                        ? "animate-spin text-white"
+                        : "text-white/50"
                     )}
                   />
                 </div>
@@ -350,12 +350,12 @@ export function RecentPresentations() {
                 className="flex flex-col space-y-2 p-4"
                 onClick={() => handlePresentationClick(presentation)}
               >
-                <h3 className="line-clamp-1 text-lg font-semibold text-foreground">
+                <h3 className="line-clamp-1 text-lg font-semibold text-white">
                   {isNavigating === presentation.id
                     ? "Loading..."
                     : presentation.title || "Untitled Presentation"}
                 </h3>
-                <div className="flex items-center text-xs text-muted-foreground">
+                <div className="flex items-center text-xs text-gray-400">
                   <Calendar className="mr-1 h-3.5 w-3.5" />
                   {isNavigating === presentation.id
                     ? "Loading..."
@@ -369,7 +369,7 @@ export function RecentPresentations() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 rounded-full bg-background/80 backdrop-blur-sm"
+                    className="h-8 w-8 rounded-full bg-white/10 backdrop-blur-sm hover:bg-white/20"
                   >
                     <MoreHorizontal className="h-4 w-4" />
                   </Button>

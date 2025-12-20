@@ -101,10 +101,19 @@ export function DownloadButton() {
       return;
     }
 
-    // Use browser print to PDF
+    // Add a class to body to indicate print mode
+    document.body.classList.add("printing");
+    
+    // Use browser print to PDF - the print CSS will handle hiding UI elements
     window.print();
+    
+    // Remove the class after a delay
+    setTimeout(() => {
+      document.body.classList.remove("printing");
+    }, 1000);
+
     toast.info("Print dialog opened", {
-      description: "Use 'Save as PDF' in the print dialog to save your presentation.",
+      description: "Select 'Save as PDF' in the print dialog. UI elements will be hidden automatically.",
     });
   };
 
@@ -122,7 +131,7 @@ export function DownloadButton() {
         <Button
           variant="outline"
           size="sm"
-          className="gap-2"
+          className="gap-2 border-white/20 text-white hover:bg-white/10"
           disabled={isDisabled}
         >
           {isExporting ? (

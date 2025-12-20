@@ -1,6 +1,6 @@
 import React from "react";
 import { PresentationGenerationManager } from "@/components/presentation/dashboard/PresentationGenerationManager";
-import PresentationHeader from "@/components/presentation/presentation-page/PresentationHeader";
+import { ChatGPTSidebar } from "@/components/presentation/dashboard/ChatGPTSidebar";
 
 export default function PresentationLayout({
   children,
@@ -10,13 +10,15 @@ export default function PresentationLayout({
   return (
     <>
       <PresentationGenerationManager />
-      <div className="flex h-screen w-screen flex-col supports-[(height:100dvh)]:h-[100dvh]">
-        <PresentationHeader />
-        <main className="relative flex flex-1 overflow-hidden">
-          <div className="sheet-container h-[calc(100vh-3.8rem)] flex-1 place-items-center overflow-y-auto overflow-x-clip supports-[(height:100dvh)]:h-[calc(100dvh-3.8rem)]">
-            {children}
-          </div>
-        </main>
+      <div className="flex h-screen w-screen flex-col supports-[(height:100dvh)]:h-[100dvh] bg-[#0f0f0f]">
+        <div className="flex flex-1 overflow-hidden">
+          <ChatGPTSidebar />
+          <main className="flex-1 overflow-y-auto bg-[#0f0f0f]">
+            <div className="sheet-container min-h-full">
+              {children}
+            </div>
+          </main>
+        </div>
       </div>
     </>
   );

@@ -52,7 +52,7 @@ export function PresentationControls({
         {/* Number of Slides */}
         <div>
           {shouldShowLabel && (
-            <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label className="mb-2 block text-sm font-medium text-gray-300">
               Number of slides
             </label>
           )}
@@ -60,12 +60,12 @@ export function PresentationControls({
             value={String(numSlides)}
             onValueChange={(v) => setNumSlides(Number(v))}
           >
-            <SelectTrigger>
+            <SelectTrigger className="bg-white/5 border-white/20 text-white">
               <SelectValue placeholder="Select number of slides" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-[#1f1f1f] border-white/20 text-white">
               {[1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20, 25, 30].map((num) => (
-                <SelectItem key={num} value={String(num)}>
+                <SelectItem key={num} value={String(num)} className="text-white focus:bg-white/10">
                   {num} slides
                 </SelectItem>
               ))}
@@ -76,17 +76,17 @@ export function PresentationControls({
         {/* Language */}
         <div>
           {shouldShowLabel && (
-            <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label className="mb-2 block text-sm font-medium text-gray-300">
               Language
             </label>
           )}
           <Select value={language} onValueChange={setLanguage}>
-            <SelectTrigger>
+            <SelectTrigger className="bg-white/5 border-white/20 text-white">
               <SelectValue placeholder="Select language" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-[#1f1f1f] border-white/20 text-white">
               {SUPPORTED_LANGUAGES.map((lang) => (
-                <SelectItem key={lang.code} value={lang.code}>
+                <SelectItem key={lang.code} value={lang.code} className="text-white focus:bg-white/10">
                   {lang.name}
                 </SelectItem>
               ))}
@@ -97,29 +97,29 @@ export function PresentationControls({
         {/* Page Style */}
         <div>
           {shouldShowLabel && (
-            <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label className="mb-2 block text-sm font-medium text-gray-300">
               Page style
             </label>
           )}
           <Select value={pageStyle} onValueChange={setPageStyle}>
-            <SelectTrigger>
+            <SelectTrigger className="bg-white/5 border-white/20 text-white">
               <div className="flex items-center gap-2">
                 <Layout className="h-4 w-4" />
                 <SelectValue placeholder="Select page style" />
               </div>
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="default">
+            <SelectContent className="bg-[#1f1f1f] border-white/20 text-white">
+              <SelectItem value="default" className="text-white focus:bg-white/10">
                 <div className="flex items-center gap-3">
                   <span>Default</span>
                 </div>
               </SelectItem>
-              <SelectItem value="traditional">
+              <SelectItem value="traditional" className="text-white focus:bg-white/10">
                 <div className="flex items-center gap-3">
                   <span>Traditional</span>
                 </div>
               </SelectItem>
-              <SelectItem value="tall">
+              <SelectItem value="tall" className="text-white focus:bg-white/10">
                 <div className="flex items-center gap-3">
                   <span>Tall</span>
                 </div>
@@ -134,7 +134,7 @@ export function PresentationControls({
         {/* Teaching Style */}
         <div>
           {shouldShowLabel && (
-            <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label className="mb-2 block text-sm font-medium text-gray-300">
               Teaching Style
             </label>
           )}
@@ -142,12 +142,12 @@ export function PresentationControls({
             value={teachingStyle} 
             onValueChange={(v) => setTeachingStyle(v as TeachingStyle)}
           >
-            <SelectTrigger>
+            <SelectTrigger className="bg-white/5 border-white/20 text-white">
               <SelectValue placeholder="Select teaching style" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-[#1f1f1f] border-white/20 text-white">
               {TEACHING_STYLES.map((style) => (
-                <SelectItem key={style.value} value={style.value}>
+                <SelectItem key={style.value} value={style.value} className="text-white focus:bg-white/10">
                   {style.label}
                 </SelectItem>
               ))}
@@ -158,7 +158,7 @@ export function PresentationControls({
         {/* Audience Type */}
         <div>
           {shouldShowLabel && (
-            <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label className="mb-2 block text-sm font-medium text-gray-300">
               Target Audience
             </label>
           )}
@@ -166,12 +166,12 @@ export function PresentationControls({
             value={audienceType} 
             onValueChange={(v) => setAudienceType(v as AudienceType)}
           >
-            <SelectTrigger>
+            <SelectTrigger className="bg-white/5 border-white/20 text-white">
               <SelectValue placeholder="Select audience" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-[#1f1f1f] border-white/20 text-white">
               {AUDIENCE_TYPES.map((audience) => (
-                <SelectItem key={audience.value} value={audience.value}>
+                <SelectItem key={audience.value} value={audience.value} className="text-white focus:bg-white/10">
                   {audience.label}
                 </SelectItem>
               ))}

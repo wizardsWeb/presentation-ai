@@ -100,7 +100,7 @@ export function ThemeSelector() {
         <Button
           variant="ghost"
           size="sm"
-          className="text-muted-foreground hover:text-foreground"
+          className="text-gray-400 hover:text-white"
         >
           <Palette className="mr-1 h-4 w-4" />
           Theme

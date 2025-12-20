@@ -19,6 +19,7 @@ import { PresentationSlidesView } from "./PresentationSlidesView";
 import { LoadingState } from "./Loading";
 import { PresentationLayout } from "./PresentationLayout";
 import { PresenterNotes } from "./PresenterNotes";
+import PresentationHeader from "./PresentationHeader";
 import { type Value } from "@udecode/plate-common";
 import {
   getPresentation,
@@ -235,19 +236,24 @@ export default function PresentationPage() {
 
   return (
     <>
-      <PresentationLayout
-        isLoading={isLoading}
-        themeData={currentThemeData ?? undefined}
-      >
-        <div className="mx-auto max-w-[90%] space-y-8 p-8 pt-16">
-          <div className="space-y-8">
-            <PresentationSlidesView
-              handleSlideChange={handleSlideChange}
-              isGeneratingPresentation={isGeneratingPresentation}
-            />
-          </div>
+      <div className="flex flex-col h-screen overflow-hidden">
+        <PresentationHeader />
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <PresentationLayout
+            isLoading={isLoading}
+            themeData={currentThemeData ?? undefined}
+          >
+            <div className="mx-auto max-w-[90%] space-y-8 p-8 pt-8">
+              <div className="space-y-8">
+                <PresentationSlidesView
+                  handleSlideChange={handleSlideChange}
+                  isGeneratingPresentation={isGeneratingPresentation}
+                />
+              </div>
+            </div>
+          </PresentationLayout>
         </div>
-      </PresentationLayout>
+      </div>
       <PresenterNotes />
     </>
   );

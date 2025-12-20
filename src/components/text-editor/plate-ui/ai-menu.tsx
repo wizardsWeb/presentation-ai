@@ -149,7 +149,10 @@ export function AIMenu() {
             </div>
           ) : (
             <CommandList>
-              <AIMenuItems aiEditorRef={aiEditorRef} setValue={setValue} />
+              <AIMenuItems 
+                aiEditorRef={aiEditorRef} 
+                setValue={setValue}
+              />
             </CommandList>
           )}
         </Command>

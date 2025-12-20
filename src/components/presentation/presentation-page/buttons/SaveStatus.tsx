@@ -9,7 +9,7 @@ export function SaveStatus() {
 
   if (savingStatus === "saving") {
     return (
-      <span className="flex animate-pulse items-center gap-1 text-sm text-muted-foreground">
+      <span className="flex animate-pulse items-center gap-1 text-sm text-gray-400">
         <Loader2 className="h-3.5 w-3.5 animate-spin" />
       </span>
     );

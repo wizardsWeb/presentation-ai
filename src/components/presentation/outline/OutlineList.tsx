@@ -144,31 +144,27 @@ export function OutlineList() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm text-foreground">Outline</h2>
-        {isGeneratingOutline && (
-          <span className="animate-pulse text-xs text-muted-foreground">
-            Generating outline...
-          </span>
-        )}
-      </div>
-
       {content}
 
       <button
         onClick={handleAddCard}
         disabled={isGeneratingOutline}
-        className="flex w-full items-center justify-center gap-2 rounded-md bg-muted/50 py-3 text-muted-foreground transition-colors hover:bg-muted disabled:opacity-50"
+        className="flex w-full items-center justify-center gap-2 rounded-lg border border-white/20 bg-white/5 py-3 text-white transition-all hover:bg-white/10 hover:border-white/30 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        <Plus size={20} />
+        <Plus size={18} />
         Add card
       </button>
 
-      <div className="flex justify-between text-sm text-muted-foreground">
-        <span>{items.length} cards total</span>
-        <span>
-          {items.reduce((acc, item) => acc + item.title.length, 0)}/20000
-        </span>
+      <div className="flex justify-between text-sm text-gray-400">
+        <span>{items.length} {items.length === 1 ? 'card' : 'cards'} total</span>
+        {isGeneratingOutline && (
+          <span className="animate-pulse text-white">Generating outline...</span>
+        )}
+        {!isGeneratingOutline && (
+          <span>
+            {items.reduce((acc, item) => acc + item.title.length, 0)}/20000
+          </span>
+        )}
       </div>
     </div>
   );

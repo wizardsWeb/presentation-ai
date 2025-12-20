@@ -98,7 +98,7 @@ export function QuizButton() {
             size="sm"
             onClick={handleGenerateQuiz}
             disabled={isGeneratingQuiz || slides.length === 0}
-            className="gap-2"
+            className="gap-2 border-white/20 text-white hover:bg-white/10"
           >
             {isGeneratingQuiz ? (
               <Loader2 className="h-4 w-4 animate-spin" />

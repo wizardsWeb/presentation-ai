@@ -11,16 +11,16 @@ export function GenerationModeSelector() {
 
   return (
     <div className="flex items-center gap-2">
-      <span className="text-sm text-muted-foreground">Mode:</span>
-      <div className="flex rounded-lg border bg-muted/30 p-1">
+      <span className="text-sm text-gray-400">Mode:</span>
+      <div className="flex rounded-lg border border-white/20 bg-white/5 p-1">
         <button
           onClick={() => setGenerationMode("quick")}
           disabled={isDisabled}
           className={cn(
             "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-all",
             generationMode === "quick"
-              ? "bg-background text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground",
+              ? "bg-white/10 text-white shadow-sm"
+              : "text-gray-400 hover:text-white",
             isDisabled && "cursor-not-allowed opacity-50"
           )}
           title="Fast parallel generation without web research"
@@ -34,8 +34,8 @@ export function GenerationModeSelector() {
           className={cn(
             "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-all",
             generationMode === "research"
-              ? "bg-background text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground",
+              ? "bg-white/10 text-white shadow-sm"
+              : "text-gray-400 hover:text-white",
             isDisabled && "cursor-not-allowed opacity-50"
           )}
           title="Agent-powered generation with web research and validation"

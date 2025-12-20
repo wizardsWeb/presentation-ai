@@ -4,6 +4,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { env } from "@/env";
 import { db } from "@/server/db";
 import { type InputJsonValue } from "@prisma/client/runtime/library";
+import { retryDbOperation } from "@/lib/db/retry";
 
 // Use Node.js runtime for Gemini
 export const runtime = "nodejs";
@@ -26,10 +27,12 @@ export async function GET(req: Request) {
       );
     }
 
-    // Fetch presenter notes from database
-    const presentation = await db.presentation.findUnique({
-      where: { id: presentationId },
-    }) as { presenterNotes?: unknown } | null;
+    // Fetch presenter notes from database with retry logic
+    const presentation = await retryDbOperation(
+      () => db.presentation.findUnique({
+        where: { id: presentationId },
+      })
+    ) as { presenterNotes?: unknown } | null;
 
     const notes = presentation?.presenterNotes as Array<{
       summary: string;
@@ -228,9 +231,12 @@ export async function POST(req: Request) {
     }
 
     // Check if presenter notes already exist in the database
-    const existingPresentation = await db.presentation.findUnique({
-      where: { id: presentationId },
-    });
+    // Use retry logic for connection stability
+    const existingPresentation = await retryDbOperation(
+      () => db.presentation.findUnique({
+        where: { id: presentationId },
+      })
+    );
 
     // If presenter notes exist and match the number of slides, return them
     const existingNotes = (existingPresentation as { presenterNotes?: unknown })?.presenterNotes as Array<{
@@ -246,14 +252,16 @@ export async function POST(req: Request) {
     // Generate new presenter notes
     const notes = await generatePresenterNotes(slides, language, presentationTitle ?? undefined);
 
-    // Save presenter notes to the database
+    // Save presenter notes to the database with retry logic
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (db.presentation.update as any)({
-        where: { id: presentationId },
-        data: {
-          presenterNotes: notes as unknown as InputJsonValue,
-        },
+      await retryDbOperation(async () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (db.presentation.update as any)({
+          where: { id: presentationId },
+          data: {
+            presenterNotes: notes as unknown as InputJsonValue,
+          },
+        });
       });
       console.log("Presenter notes saved to database");
     } catch (dbError) {

@@ -49,10 +49,10 @@ export function PresentationLayout({
   }
 
   return (
-    <ThemeBackground className="h-full w-full">
+    <ThemeBackground className="flex-1 w-full h-full overflow-hidden">
       {themeData && <CustomThemeFontLoader themeData={themeData} />}
       <div className="flex h-full">
-        <div className="flex h-full items-center">
+        <div className="flex h-full items-start no-print">
           <Resizable
             size={{ width: sidebarWidth }}
             minWidth={100}
@@ -61,13 +61,13 @@ export function PresentationLayout({
             onResizeStop={handleResize}
             handleComponent={{
               right: (
-                <div className="group/resize relative flex h-full w-1 cursor-col-resize bg-border">
+                <div className="group/resize relative flex h-full w-1 cursor-col-resize bg-border no-print">
                   <GripVertical className="absolute left-1/2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 text-muted-foreground opacity-0 group-hover/resize:opacity-100" />
                 </div>
               ),
             }}
           >
-            <div className="h-max max-h-[90vh] overflow-auto">
+            <div className="h-full overflow-y-auto no-print">
               <SlidePreview
                 onSlideClick={handleSlideClick}
                 currentSlideIndex={currentSlideIndex}
@@ -77,14 +77,14 @@ export function PresentationLayout({
         </div>
 
         {/* Main Presentation Content - Scrollable */}
-        <div className="presentation-slides max-h-full flex-1 overflow-auto pb-20 relative">
+        <div className="presentation-slides h-full flex-1 overflow-y-auto overflow-x-hidden pb-20 relative">
           {children}
           
           {/* Floating Presenter Notes Button */}
           {slides.length > 0 && (
             <Button
               onClick={() => setIsSheetOpen(true)}
-              className="fixed bottom-6 right-6 z-50 shadow-lg"
+              className="fixed bottom-6 right-6 z-50 shadow-lg bg-white text-black hover:bg-white/90 no-print"
               size="lg"
               variant="default"
             >

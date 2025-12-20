@@ -7,7 +7,7 @@ import type { SectionType } from "@/components/presentation/utils/parser";
 
 // Section type configuration for badges - subtle, non-intrusive styling
 const sectionConfig: Record<SectionType, { label: string; color: string }> = {
-  introduction: { label: "Intro", color: "bg-blue-500/70 shadow-blue-500/20" },
+  introduction: { label: "Intro", color: "bg-white/70 shadow-white/20" },
   content: { label: "Content", color: "bg-slate-500/70 shadow-slate-500/20" },
   example: { label: "Example", color: "bg-emerald-500/70 shadow-emerald-500/20" },
   activity: { label: "Activity", color: "bg-amber-500/70 shadow-amber-500/20" },
@@ -38,9 +38,9 @@ export function SlidePreview({
             <div
               key={`slide-preview-${slide.id}-${index}`}
               className={cn(
-                "group relative cursor-pointer overflow-hidden rounded-md border transition-all hover:border-primary",
+                "group relative cursor-pointer overflow-hidden rounded-md border transition-all hover:border-white",
                 currentSlideIndex === index
-                  ? "border-primary ring-1 ring-primary"
+                  ? "border-white ring-1 ring-white"
                   : "border-muted",
               )}
               onClick={() => {

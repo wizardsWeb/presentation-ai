@@ -291,3 +291,23 @@ h6.presentation-heading {
 [data-is-presenting="true"] iframe {
   max-height: 55vh;
 }
+
+/* Hide the first heading (slide title) in presentation/preview mode */
+[data-is-presenting="true"] [data-slate-editor="true"] > div:first-child h1.presentation-heading,
+[data-is-presenting="true"] [data-slate-editor="true"] > div:first-child h1,
+[data-is-presenting="true"] [data-slate-editor="true"] h1:first-of-type {
+  display: none !important;
+}
+
+/* Alternative selector for ProseMirror editor */
+[data-is-presenting="true"] .ProseMirror > h1:first-child,
+[data-is-presenting="true"] .ProseMirror > div:first-child > h1,
+[data-is-presenting="true"] .ProseMirror h1:first-of-type {
+  display: none !important;
+}
+
+/* Hide first heading in any editor structure when presenting */
+[data-is-presenting="true"] [data-slate-editor="true"] h1.presentation-heading:first-child,
+[data-is-presenting="true"] [data-slate-editor="true"] > *:first-child h1.presentation-heading {
+  display: none !important;
+}

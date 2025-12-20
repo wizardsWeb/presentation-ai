@@ -40,14 +40,14 @@ export default function PresentationHeader({ title }: PresentationHeaderProps) {
   }, [currentPresentationTitle, title]);
 
   return (
-    <header className="flex h-12 w-full items-center justify-between border-b border-accent bg-background px-4">
+    <header className="flex h-12 w-full items-center justify-between border-b border-white/10 bg-[#0f0f0f] px-4 no-print">
       {/* Left section with breadcrumb navigation */}
       <div className="flex items-center gap-2">
-        <Link href="/" className="text-muted-foreground hover:text-foreground">
+        <Link href="/presentation" className="text-gray-400 hover:text-white transition-colors">
           <Brain className="h-5 w-5"></Brain>
         </Link>
-        <ChevronRight className="h-4 w-4 text-muted-foreground" />
-        <span className="font-medium">{presentationTitle}</span>
+        <ChevronRight className="h-4 w-4 text-gray-400" />
+        <span className="font-medium text-white">{presentationTitle}</span>
       </div>
 
       {/* Right section with actions */}

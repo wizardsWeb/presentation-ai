@@ -134,7 +134,7 @@ export const YouTubeElement = withRef<typeof PlateElement>(
                 href={watchUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1 text-primary hover:underline"
+                className="flex items-center gap-1 text-white hover:underline"
                 onClick={(e) => e.stopPropagation()}
               >
                 <ExternalLink className="h-3 w-3" />

@@ -65,7 +65,7 @@ function TransitionItem({
       className={cn(
         "flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition-colors",
         "hover:bg-accent hover:text-accent-foreground",
-        isSelected && "bg-primary/10 text-primary"
+        isSelected && "bg-white/10 text-white"
       )}
     >
       <span className="font-medium">{transition.name}</span>
@@ -112,7 +112,7 @@ export function TransitionSelector() {
         <Button
           variant="ghost"
           size="sm"
-          className="text-muted-foreground hover:text-foreground"
+          className="text-gray-400 hover:text-white"
         >
           <Sparkles className="mr-1 h-4 w-4" />
           Transitions

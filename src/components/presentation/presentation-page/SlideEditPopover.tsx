@@ -106,7 +106,7 @@ export function SlideEditPopover({ index }: SlideEditPopoverProps) {
             <div className="flex items-center gap-2">
               <Button
                 variant="link"
-                className="h-auto p-0 text-sm text-blue-500"
+                className="h-auto p-0 text-sm text-white"
                 onClick={handleImageEdit}
               >
                 Edit
@@ -134,7 +134,7 @@ export function SlideEditPopover({ index }: SlideEditPopoverProps) {
                 size="icon"
                 className={cn(
                   "h-6 w-6 border-zinc-800 bg-zinc-900",
-                  currentAlignment === "start" && "bg-blue-600"
+                  currentAlignment === "start" && "bg-white text-black"
                 )}
                 onClick={() => updateSlide({ alignment: "start" })}
               >
@@ -145,7 +145,7 @@ export function SlideEditPopover({ index }: SlideEditPopoverProps) {
                 size="icon"
                 className={cn(
                   "h-6 w-6 border-zinc-800 bg-zinc-900",
-                  currentAlignment === "center" && "bg-blue-600"
+                  currentAlignment === "center" && "bg-white text-black"
                 )}
                 onClick={() => updateSlide({ alignment: "center" })}
               >
@@ -156,7 +156,7 @@ export function SlideEditPopover({ index }: SlideEditPopoverProps) {
                 size="icon"
                 className={cn(
                   "h-6 w-6 border-zinc-800 bg-zinc-900",
-                  currentAlignment === "end" && "bg-blue-600"
+                  currentAlignment === "end" && "bg-white text-black"
                 )}
                 onClick={() => updateSlide({ alignment: "end" })}
               >
@@ -177,7 +177,7 @@ export function SlideEditPopover({ index }: SlideEditPopoverProps) {
                 size="icon"
                 className={cn(
                   "h-6 w-6 border-zinc-800 bg-zinc-900",
-                  currentLayout === "vertical" && "bg-blue-600"
+                  currentLayout === "vertical" && "bg-white text-black"
                 )}
                 onClick={() => updateSlide({ layoutType: "vertical" })}
               >
@@ -188,7 +188,7 @@ export function SlideEditPopover({ index }: SlideEditPopoverProps) {
                 size="icon"
                 className={cn(
                   "h-6 w-6 border-zinc-800 bg-zinc-900",
-                  currentLayout === "left" && "bg-blue-600"
+                  currentLayout === "left" && "bg-white text-black"
                 )}
                 onClick={() => updateSlide({ layoutType: "left" })}
               >
@@ -199,7 +199,7 @@ export function SlideEditPopover({ index }: SlideEditPopoverProps) {
                 size="icon"
                 className={cn(
                   "h-6 w-6 border-zinc-800 bg-zinc-900",
-                  currentLayout === "right" && "bg-blue-600"
+                  currentLayout === "right" && "bg-white text-black"
                 )}
                 onClick={() => updateSlide({ layoutType: "right" })}
               >
@@ -220,7 +220,7 @@ export function SlideEditPopover({ index }: SlideEditPopoverProps) {
                 size="sm"
                 className={cn(
                   "h-6 border-zinc-800 bg-zinc-900 px-2",
-                  currentWidth === "M" && "bg-blue-600"
+                  currentWidth === "M" && "bg-white text-black"
                 )}
                 onClick={() => updateSlide({ width: "M" })}
               >
@@ -231,7 +231,7 @@ export function SlideEditPopover({ index }: SlideEditPopoverProps) {
                 size="sm"
                 className={cn(
                   "h-6 border-zinc-800 bg-zinc-900 px-2",
-                  currentWidth === "L" && "bg-blue-600"
+                  currentWidth === "L" && "bg-white text-black"
                 )}
                 onClick={() => updateSlide({ width: "L" })}
               >

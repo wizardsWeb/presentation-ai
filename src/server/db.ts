@@ -5,8 +5,6 @@ import { env } from "@/env";
 const createPrismaClient = () => {
   const client = new PrismaClient({
     log: env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
-    // Add connection pool settings for better stability
-    datasourceUrl: env.DATABASE_URL,
   });
 
   // Handle connection errors gracefully
@@ -16,6 +14,11 @@ const createPrismaClient = () => {
       message: e.message,
       target: e.target,
     });
+    
+    // If connection is closed, log warning - Prisma will auto-reconnect
+    if (e.message.includes("Closed") || e.message.includes("connection")) {
+      console.warn("Database connection closed. Prisma will reconnect on next query.");
+    }
   });
 
   return client;
@@ -28,3 +31,14 @@ const globalForPrisma = globalThis as unknown as {
 export const db = globalForPrisma.prisma ?? createPrismaClient();
 
 if (env.NODE_ENV !== "production") globalForPrisma.prisma = db;
+
+// Graceful shutdown handler
+if (typeof process !== "undefined") {
+  const gracefulShutdown = async () => {
+    await db.$disconnect();
+  };
+  
+  process.on("beforeExit", gracefulShutdown);
+  process.on("SIGINT", gracefulShutdown);
+  process.on("SIGTERM", gracefulShutdown);
+}

@@ -248,7 +248,7 @@ Start writing a new paragraph AFTER <Document> ONLY ONE SENTENCE`
     value: "fixSpelling",
     onSelect: ({ editor }: EditorProps) => {
       void editor.getApi(AIChatPlugin).aiChat.submit({
-        prompt: "Fix spelling and grammar",
+        prompt: "Fix all spelling errors and grammatical mistakes in the selected text. Keep the meaning and style unchanged.",
       });
     },
   },
@@ -258,7 +258,7 @@ Start writing a new paragraph AFTER <Document> ONLY ONE SENTENCE`
     value: "improveWriting",
     onSelect: ({ editor }: EditorProps) => {
       void editor.getApi(AIChatPlugin).aiChat.submit({
-        prompt: "Improve the writing",
+        prompt: "Improve the writing quality, clarity, and flow of the selected text while maintaining its original meaning and tone.",
       });
     },
   },
@@ -276,7 +276,7 @@ Start writing a new paragraph AFTER <Document> ONLY ONE SENTENCE`
     value: "makeLonger",
     onSelect: ({ editor }: EditorProps) => {
       void editor.getApi(AIChatPlugin).aiChat.submit({
-        prompt: "Make longer",
+        prompt: "Make the selected text longer. Expand it with more detail, examples, or elaboration while maintaining its core meaning and message.",
       });
     },
   },
@@ -286,7 +286,7 @@ Start writing a new paragraph AFTER <Document> ONLY ONE SENTENCE`
     value: "makeShorter",
     onSelect: ({ editor }: EditorProps) => {
       void editor.getApi(AIChatPlugin).aiChat.submit({
-        prompt: "Make shorter",
+        prompt: "Make the selected text shorter. Condense it while preserving all key information and meaning. Remove redundancy and be concise.",
       });
     },
   },
@@ -304,7 +304,7 @@ Start writing a new paragraph AFTER <Document> ONLY ONE SENTENCE`
     value: "simplifyLanguage",
     onSelect: ({ editor }: EditorProps) => {
       void editor.getApi(AIChatPlugin).aiChat.submit({
-        prompt: "Simplify the language",
+        prompt: "Simplify the language of the selected text. Use simpler words and shorter sentences while keeping the same meaning.",
       });
     },
   },
