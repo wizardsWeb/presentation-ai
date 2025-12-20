@@ -102,8 +102,8 @@ const openAIChain = RunnableSequence.from([
   PromptTemplate.fromTemplate(outlineTemplate),
   new ChatOpenAI({
     modelName: "gpt-4o-mini",
-    temperature: 0.5,
-    maxTokens: 1500,
+    temperature: 0.4, // Lower for faster, more deterministic output
+    maxTokens: 1000, // Reduced from 1500 - outlines are concise
     streaming: true,
   }),
 ]);

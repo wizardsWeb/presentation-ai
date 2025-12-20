@@ -15,6 +15,12 @@ export const env = createEnv({
     YOUTUBE_API_KEY: z.string().optional(),
     GOOGLE_CLIENT_ID: z.string(),
     GOOGLE_CLIENT_SECRET: z.string(),
+    
+    // Bhashini API for Indian language support (ASR, TTS, Translation)
+    BHASHINI_USER_ID: z.string().optional(),
+    BHASHINI_API_KEY: z.string().optional(),
+    BHASHINI_PIPELINE_ID: z.string().optional(),
+    
     NEXTAUTH_URL: z.preprocess(
       (str) => process.env.VERCEL_URL ?? str,
       process.env.VERCEL ? z.string() : z.string().url()
@@ -35,6 +41,9 @@ export const env = createEnv({
     TAVILY_API_KEY: process.env.TAVILY_API_KEY,
     GOOGLE_API_KEY: process.env.GOOGLE_API_KEY,
     YOUTUBE_API_KEY: process.env.YOUTUBE_API_KEY,
+    BHASHINI_USER_ID: process.env.BHASHINI_USER_ID,
+    BHASHINI_API_KEY: process.env.BHASHINI_API_KEY,
+    BHASHINI_PIPELINE_ID: process.env.BHASHINI_PIPELINE_ID,
     NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
     NEXTAUTH_URL: process.env.NEXTAUTH_URL,
   },

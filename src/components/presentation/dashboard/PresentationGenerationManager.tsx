@@ -46,6 +46,8 @@ export function PresentationGenerationManager() {
   // Track YouTube search state
   const youtubeVideoRef = useRef<YouTubeSearchResult["video"] | null>(null);
   const videoSlideInserted = useRef(false);
+  const youtubeSearchInProgressRef = useRef(false); // Prevent duplicate searches
+  const lastSearchTopicRef = useRef<string>(""); // Track last searched topic
 
   // Parallel generation refs
   const parallelAbortControllersRef = useRef<Map<number, AbortController>>(new Map());
@@ -96,6 +98,21 @@ export function PresentationGenerationManager() {
   // Search YouTube for a relevant video - runs completely independently
   // When video is found, it will be inserted into slides via a separate effect
   const searchYouTubeVideo = useCallback(async (topic: string, language: string) => {
+    // Prevent duplicate searches for the same topic
+    if (youtubeSearchInProgressRef.current) {
+      console.log("YouTube search already in progress, skipping duplicate request");
+      return youtubeVideoRef.current;
+    }
+    
+    // Skip if we already searched for this exact topic and found a video
+    if (lastSearchTopicRef.current === topic && youtubeVideoRef.current) {
+      console.log("Using cached YouTube video for topic:", topic);
+      return youtubeVideoRef.current;
+    }
+    
+    youtubeSearchInProgressRef.current = true;
+    lastSearchTopicRef.current = topic;
+    
     try {
       setIsSearchingYouTube(true);
       const response = await fetch("/api/youtube/search", {
@@ -136,6 +153,7 @@ export function PresentationGenerationManager() {
       return null;
     } finally {
       setIsSearchingYouTube(false);
+      youtubeSearchInProgressRef.current = false;
     }
   }, [setYoutubeVideo, setIsSearchingYouTube, createVideoSlide, setSlides]);
 
@@ -319,6 +337,20 @@ export function PresentationGenerationManager() {
       // Mark generation as in progress
       outlineGenerationInProgressRef.current = true;
 
+      // Reset YouTube state and start searching EARLY (during outline generation)
+      // This gives the YouTube search a head start while the user reviews the outline
+      youtubeVideoRef.current = null;
+      videoSlideInserted.current = false;
+      youtubeSearchInProgressRef.current = false; // Reset search in progress flag
+      lastSearchTopicRef.current = ""; // Reset last searched topic
+      setYoutubeVideo(null);
+      
+      const searchTopic = presentationInput ?? "";
+      if (searchTopic) {
+        console.log("Starting YouTube search early (during outline generation)");
+        void searchYouTubeVideo(searchTopic, language);
+      }
+
       try {
         console.log("Starting outline generation", {
           prompt: presentationInput,
@@ -356,7 +388,7 @@ export function PresentationGenerationManager() {
     };
 
     void startOutlineGeneration();
-  }, [shouldStartOutlineGeneration, setIsGeneratingOutline, setShouldStartOutlineGeneration]);
+  }, [shouldStartOutlineGeneration, setIsGeneratingOutline, setShouldStartOutlineGeneration, searchYouTubeVideo, setYoutubeVideo]);
 
   // ============================================
   // PARALLEL SLIDE GENERATION (Quick Mode)
@@ -712,19 +744,25 @@ export function PresentationGenerationManager() {
         generationMode: currentGenerationMode,
       } = usePresentationState.getState();
 
-      // Reset the parser and YouTube state before starting a new generation
+      // Reset the parser before starting a new generation
       streamingParserRef.current.reset();
-      youtubeVideoRef.current = null;
+      
+      // Only reset video insertion flag, NOT the video itself
+      // The YouTube search may have already completed during outline generation
       videoSlideInserted.current = false;
-      setYoutubeVideo(null);
 
       setIsGeneratingPresentation(true);
 
-      // Start YouTube search in parallel with presentation generation
-      // This runs concurrently, not blocking the main generation
-      const searchTopic = presentationInput ?? currentPresentationTitle ?? "";
-      if (searchTopic) {
-        void searchYouTubeVideo(searchTopic, language);
+      // Only start YouTube search if we don't already have a video from outline generation
+      // This prevents duplicate searches and makes generation faster
+      if (!youtubeVideoRef.current) {
+        const searchTopic = presentationInput ?? currentPresentationTitle ?? "";
+        if (searchTopic) {
+          console.log("Starting YouTube search (no video from outline phase)");
+          void searchYouTubeVideo(searchTopic, language);
+        }
+      } else {
+        console.log("Using YouTube video found during outline generation:", youtubeVideoRef.current.title);
       }
 
       // Use parallel generation for "quick" mode, sequential for "research"

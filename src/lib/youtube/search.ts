@@ -47,7 +47,7 @@ export async function searchYouTubeVideo(
     searchUrl.searchParams.set("part", "snippet");
     searchUrl.searchParams.set("q", searchQuery);
     searchUrl.searchParams.set("type", "video");
-    searchUrl.searchParams.set("maxResults", "5");
+    searchUrl.searchParams.set("maxResults", "3"); // Reduced for faster response
     searchUrl.searchParams.set("order", "relevance");
     searchUrl.searchParams.set("videoEmbeddable", "true");
     searchUrl.searchParams.set("safeSearch", "strict");
@@ -61,8 +61,8 @@ export async function searchYouTubeVideo(
       headers: {
         "Accept": "application/json",
       },
-      // Add timeout
-      signal: AbortSignal.timeout(10000),
+      // Reduced timeout for faster failure recovery (5 seconds)
+      signal: AbortSignal.timeout(5000),
     });
 
     if (!searchResponse.ok) {

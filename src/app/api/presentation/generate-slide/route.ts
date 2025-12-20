@@ -73,61 +73,25 @@ const getLayoutForSlide = (slideIndex: number, previousLayouts: string[]): strin
   return availableLayouts[slideIndex % availableLayouts.length] ?? "vertical";
 };
 
-const singleSlideTemplate = `Generate ONE presentation slide in XML format.
+const singleSlideTemplate = `Create 1 slide as XML. Slide {SLIDE_INDEX}/{TOTAL_SLIDES}. Topic: {TITLE}. Content: {OUTLINE_ITEM}. Language: {LANGUAGE}. {TEACHING_STYLE_INSTRUCTIONS} {AUDIENCE_INSTRUCTIONS}
 
-## SLIDE DETAILS
-- Slide Number: {SLIDE_INDEX} of {TOTAL_SLIDES}
-- Topic: {TITLE}
-- Slide Content: {OUTLINE_ITEM}
-- Language: {LANGUAGE}
-- Layout: {LAYOUT}
-- Section Type: {SECTION_TYPE}
+Format: <SECTION layout="{LAYOUT}" section="{SECTION_TYPE}">content</SECTION>
 
-## TEACHING APPROACH
-{TEACHING_STYLE_INSTRUCTIONS}
+Components (pick ONE):
+- BULLETS: <BULLETS><DIV><H3>title</H3><P>text</P></DIV></BULLETS>
+- ICONS: <ICONS><DIV><ICON query="word"/><H3>title</H3><P>text</P></DIV></ICONS>
+- COLUMNS: <COLUMNS><DIV><H3>a</H3><P>text</P></DIV><DIV><H3>b</H3><P>text</P></DIV></COLUMNS>
+- CYCLE/ARROWS/TIMELINE: <CYCLE><DIV><H3>step</H3><P>text</P></DIV></CYCLE>
+- PYRAMID/STAIRCASE: <PYRAMID><DIV><H3>level</H3><P>text</P></DIV></PYRAMID>
 
-## TARGET AUDIENCE
-{AUDIENCE_INSTRUCTIONS}
+Add image: <IMG query="descriptive 10+ word image prompt with style and context"/>
 
-## REQUIRED FORMAT
-Generate exactly this structure:
-\`\`\`xml
-<SECTION layout="{LAYOUT}" section="{SECTION_TYPE}">
-  <!-- Use ONE of these layout components -->
-  <!-- Add detailed image query -->
-</SECTION>
-\`\`\`
-
-## AVAILABLE LAYOUT COMPONENTS (choose ONE that best fits the content):
-- COLUMNS: For comparisons (2-3 DIV elements with H3 and P)
-- BULLETS: For key points (DIV elements with H3/P content)
-- ICONS: For concepts (DIV with ICON query, H3, P)
-- CYCLE: For circular processes (3-4 DIV elements)
-- ARROWS: For cause-effect flows (2-3 DIV elements)
-- TIMELINE: For chronological events (DIV elements with dates)
-- PYRAMID: For hierarchy (top-to-bottom importance)
-- STAIRCASE: For progression (DIV elements for each level)
-- CHART: For data (charttype="vertical-bar" with TABLE/TR/TD)
-
-## IMAGE QUERIES
-Include at least one detailed image query (10+ words):
-\`\`\`xml
-<IMG query="detailed description of image with style, lighting, and context" />
-\`\`\`
-
-## RULES
-1. Generate ONLY ONE <SECTION> tag
-2. DO NOT copy outline verbatim - expand with examples and details
-3. Use the specified layout and section type
-4. Write all content in {LANGUAGE}
-5. Include engaging, specific content appropriate for the audience
-
-Generate the single slide now:`;
+Rules: Expand outline creatively. Use specified layout/section. Write in {LANGUAGE}. Output ONLY the <SECTION> tag:`;
 
 const model = new ChatOpenAI({
   modelName: "gpt-4o-mini",
-  temperature: 0.6,
-  maxTokens: 800, // Smaller token limit for single slide
+  temperature: 0.4, // Lower for faster, more deterministic output
+  maxTokens: 600, // Reduced from 800 - single slides don't need as many tokens
   streaming: true,
 });
 

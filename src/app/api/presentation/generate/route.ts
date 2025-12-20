@@ -214,8 +214,8 @@ Now create a complete XML presentation with {TOTAL_SLIDES} slides that significa
 
 const model = new ChatOpenAI({
   modelName: "gpt-4o-mini",
-  temperature: 0.5,
-  maxTokens: 4000,
+  temperature: 0.4, // Lower for faster, more deterministic output
+  maxTokens: 3000, // Reduced for faster response - still plenty for full presentations
   streaming: true,
 });
 
