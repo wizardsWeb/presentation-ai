@@ -180,7 +180,7 @@ export function SlideContainer({
           </div>
         )}
 
-        {/* Section type badge - visible on hover in editor mode */}
+        {/* Section type badge - visible on hover in editor mode, completely hidden in presentation mode */}
         {!isPresenting && currentSlide?.sectionType && sectionConfig[currentSlide.sectionType] && (
           <div className="absolute right-4 top-2 z-[100] opacity-0 transition-all duration-200 group-hover/card-container:opacity-100">
             <span className={cn(
