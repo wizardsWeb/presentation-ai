@@ -143,6 +143,7 @@ export async function POST(req: Request) {
       audienceInstructions,
     });
 
+    // Restore streaming response for outline generation
     return LangChainAdapter.toDataStreamResponse(stream);
   } catch (error) {
     console.error("Error in outline generation:", error);

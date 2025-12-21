@@ -14,11 +14,15 @@
     "checkJs": true,
     "noImplicitAny": false,
     /* Bundled projects */
-    "lib": ["dom", "dom.iterable", "ES2022"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "ES2022"
+    ],
     "noEmit": true,
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "plugins": [
       {
         "name": "next"
@@ -28,7 +32,9 @@
     /* Path Aliases */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": [
+        "./src/*"
+      ]
     }
   },
   "include": [
@@ -41,7 +47,10 @@
     ".next/types/**/*.ts",
     "src/ai/open-canvas/nodes/rewrite-artifact/index.tsx",
     ".next-dev/types/**/*.ts",
-    "src/components/notebook/mindmap/types.tss"
+    "src/components/notebook/mindmap/types.tss",
+    ".next/dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules"
+  ]
 }
