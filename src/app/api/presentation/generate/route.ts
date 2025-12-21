@@ -167,7 +167,7 @@ Choose ONE different layout for each slide:
 </STAIRCASE>
 \`\`\`
 
-9. CHART: For data visualization
+9. CHART: For data visualization (use approximately 1 in 10 slides when content has statistics/data)
 \`\`\`xml
 <CHART charttype="vertical-bar">
   <TABLE>
@@ -177,6 +177,8 @@ Choose ONE different layout for each slide:
   </TABLE>
 </CHART>
 \`\`\`
+Chart types: "vertical-bar" (comparisons), "horizontal-bar" (rankings), "line" (trends), "pie" (parts of whole), "area" (cumulative trends)
+Use charts when slide contains statistics, percentages, comparisons, or data trends. Include approximately 1 chart per 10 slides.
 
 10. IMAGES: Most slides needs at least one
 \`\`\`xml

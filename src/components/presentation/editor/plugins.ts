@@ -37,6 +37,7 @@ import { IconPlugin } from "./custom-elements/icon";
 import { IconItemPlugin, IconsPlugin } from "./custom-elements/icons-element";
 import { GeneratingPlugin } from "./custom-elements/generating-leaf";
 import { YouTubePlugin } from "./custom-elements/youtube-element";
+import { ChartPlugin } from "./custom-elements/chart-element";
 import { aiPlugins } from "@/components/text-editor/plugins/ai-plugins";
 // Create presentation-specific plugins
 export const presentationPlugins = [
@@ -85,6 +86,8 @@ export const presentationPlugins = [
   CyclePlugin,
 
   YouTubePlugin,
+
+  ChartPlugin,
 
   GeneratingPlugin,
   // Functionality

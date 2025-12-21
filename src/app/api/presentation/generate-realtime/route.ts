@@ -34,18 +34,46 @@ Components (pick ONE):
 - PYRAMID: <PYRAMID><DIV><H3>level</H3><P>text</P></DIV></PYRAMID>
 - COLUMNS: <COLUMNS><DIV><H3>a</H3><P>text</P></DIV><DIV><H3>b</H3><P>text</P></DIV></COLUMNS>
 - STAIRCASE: <STAIRCASE><DIV><H3>step</H3><P>text</P></DIV></STAIRCASE>
+- CHART: <CHART charttype="vertical-bar"><TABLE><TR><TD type="label"><VALUE>Label</VALUE></TD><TD type="data"><VALUE>45</VALUE></TD></TR></TABLE></CHART>
+  {CHART_HINT}
+  Chart types: "vertical-bar", "horizontal-bar", "line", "pie", "area"
+  Use charts ONLY when explicitly instructed above.
 
 Add image: <IMG query="descriptive prompt"/>
 
 Rules: 
 - 3-4 items with specific content (stats, examples)
 - Engaging title with numbers/power words
+- Use charts ONLY when explicitly instructed
 - Output ONLY the <SECTION> tag, nothing else:`;
 
 const layouts = ["left", "right", "vertical"] as const;
 
 function getLayout(index: number): string {
   return layouts[index % layouts.length] ?? "left";
+}
+
+// Helper to determine if this slide should include a chart (approximately 1 in 10)
+// Uses agent mode logic for better chart control
+function shouldIncludeChart(slideIndex: number, totalSlides: number, topic: string): boolean {
+  // Check if topic contains data-related keywords
+  const dataKeywords = [
+    "statistic", "data", "percentage", "growth", "trend", "comparison",
+    "survey", "research", "analysis", "metric", "rate", "increase", "decrease",
+    "market share", "revenue", "sales", "performance", "results", "outcome"
+  ];
+  
+  const topicLower = topic.toLowerCase();
+  const hasDataKeywords = dataKeywords.some(keyword => topicLower.includes(keyword));
+  
+  // Include chart if:
+  // 1. Topic has data keywords AND (slide index is divisible by ~10 OR it's a middle slide)
+  // 2. Approximately 1 in 10 slides should have charts
+  const isDataSlide = hasDataKeywords;
+  const isChartPosition = (slideIndex + 1) % 10 === 0 || 
+                          (totalSlides > 5 && slideIndex === Math.floor(totalSlides / 2));
+  
+  return isDataSlide && (isChartPosition || Math.random() < 0.15); // 15% chance for data slides
 }
 
 // Track slide generation state
@@ -112,6 +140,12 @@ export async function POST(req: Request) {
           const state = slideStates[index]!;
 
           try {
+            // Use agent mode logic to determine if chart should be included
+            const includeChart = shouldIncludeChart(index, total, topic);
+            const chartHint = includeChart 
+              ? "\n\nIMPORTANT: This slide contains data/statistics. Include a CHART component with relevant data points. Use appropriate chart type (vertical-bar for comparisons, line for trends, pie for parts of whole)."
+              : "";
+
             const prompt = PromptTemplate.fromTemplate(singleSlideTemplate);
             const chain = RunnableSequence.from([
               prompt,
@@ -124,6 +158,7 @@ export async function POST(req: Request) {
               LANGUAGE: language,
               TONE: tone,
               SUGGESTED_LAYOUT: layout,
+              CHART_HINT: chartHint,
             });
 
             for await (const chunk of stream) {

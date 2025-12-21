@@ -190,12 +190,46 @@ PYRAMID - Hierarchy (3-4):
 STAIRCASE - Progression:
 <STAIRCASE><DIV><H3>Stage</H3><P>Description.</P></DIV>...</STAIRCASE>
 
+CHART - Data visualization (use when slide contains statistics/data):
+<CHART charttype="vertical-bar">
+  <TABLE>
+    <TR><TD type="label"><VALUE>Category 1</VALUE></TD><TD type="data"><VALUE>45</VALUE></TD></TR>
+    <TR><TD type="label"><VALUE>Category 2</VALUE></TD><TD type="data"><VALUE>72</VALUE></TD></TR>
+    <TR><TD type="label"><VALUE>Category 3</VALUE></TD><TD type="data"><VALUE>89</VALUE></TD></TR>
+  </TABLE>
+</CHART>
+Chart types: "vertical-bar", "horizontal-bar", "line", "pie", "area"
+Use charts when slide topic contains statistics, comparisons, or data trends.
+
 OUTPUT (only this, no explanations):
 <SECTION layout="{SUGGESTED_LAYOUT}" section="{SECTION_TYPE}">
   <H1>Compelling Title</H1>
   [ONE component with 3-4 rich items]
+  {CHART_HINT}
   <IMG query="professional photo: specific subject, mood, setting - 10 words"/>
 </SECTION>`;
+
+// Helper to determine if this slide should include a chart (approximately 1 in 10)
+function shouldIncludeChart(slideIndex: number, totalSlides: number, topic: string): boolean {
+  // Check if topic contains data-related keywords
+  const dataKeywords = [
+    "statistic", "data", "percentage", "growth", "trend", "comparison",
+    "survey", "research", "analysis", "metric", "rate", "increase", "decrease",
+    "market share", "revenue", "sales", "performance", "results", "outcome"
+  ];
+  
+  const topicLower = topic.toLowerCase();
+  const hasDataKeywords = dataKeywords.some(keyword => topicLower.includes(keyword));
+  
+  // Include chart if:
+  // 1. Topic has data keywords AND (slide index is divisible by ~10 OR it's a middle slide)
+  // 2. Approximately 1 in 10 slides should have charts
+  const isDataSlide = hasDataKeywords;
+  const isChartPosition = (slideIndex + 1) % 10 === 0 || 
+                          (totalSlides > 5 && slideIndex === Math.floor(totalSlides / 2));
+  
+  return isDataSlide && (isChartPosition || Math.random() < 0.15); // 15% chance for data slides
+}
 
 // Fallback prompt without research - concise
 const slidePromptBasic = `Expert presentation writer. Create ONE compelling slide.
@@ -223,6 +257,9 @@ TIMELINE: <TIMELINE><DIV><H3>Date</H3><P>Event.</P></DIV>...</TIMELINE>
 COLUMNS: <COLUMNS><DIV><H3>A</H3><P>...</P></DIV><DIV><H3>B</H3><P>...</P></DIV></COLUMNS>
 PYRAMID: <PYRAMID><DIV><H3>Level</H3><P>...</P></DIV>...</PYRAMID>
 STAIRCASE: <STAIRCASE><DIV><H3>Stage</H3><P>...</P></DIV>...</STAIRCASE>
+
+CHART: <CHART charttype="vertical-bar"><TABLE><TR><TD type="label"><VALUE>Label</VALUE></TD><TD type="data"><VALUE>45</VALUE></TD></TR>...</TABLE></CHART>
+Use charts when topic contains statistics, data comparisons, or trends. Chart types: "vertical-bar", "horizontal-bar", "line", "pie", "area"
 
 OUTPUT ONLY:
 <SECTION layout="{SUGGESTED_LAYOUT}" section="{SECTION_TYPE}">
@@ -346,6 +383,12 @@ export async function generateSlideWithAgent(
     // Step 2: Generate Content with real-time streaming
     emit({ type: "generating", message: "Creating content..." });
 
+    // Determine if this slide should include a chart
+    const includeChart = shouldIncludeChart(index, total, topic);
+    const chartHint = includeChart 
+      ? "\n\nIMPORTANT: This slide contains data/statistics. Include a CHART component with relevant data points extracted from the content. Use appropriate chart type (vertical-bar for comparisons, line for trends, pie for parts of whole)."
+      : "";
+
     const promptTemplate = researchUsed ? slidePromptWithResearch : slidePromptBasic;
     const prompt = PromptTemplate.fromTemplate(promptTemplate);
     
@@ -379,6 +422,7 @@ export async function generateSlideWithAgent(
         RESEARCH_CONTEXT: researchContext,
         TEACHING_STYLE: getTeachingStyleContent(pedagogy.teachingStyle),
         AUDIENCE_TYPE: getAudienceContent(pedagogy.audienceType),
+        CHART_HINT: chartHint,
       });
 
       let tokenBuffer = "";
@@ -423,6 +467,7 @@ export async function generateSlideWithAgent(
         RESEARCH_CONTEXT: researchContext,
         TEACHING_STYLE: getTeachingStyleContent(pedagogy.teachingStyle),
         AUDIENCE_TYPE: getAudienceContent(pedagogy.audienceType),
+        CHART_HINT: chartHint,
       });
     }
 
