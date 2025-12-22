@@ -4,6 +4,7 @@ import { ChatOpenAI } from "@langchain/openai";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { RunnableSequence } from "@langchain/core/runnables";
 import { StringOutputParser } from "@langchain/core/output_parsers";
+import { generateFullSlideImage, generateSlideImagePrompt } from "@/lib/image/nano-banana-service";
 
 /**
  * Real-time streaming endpoint for Quick Mode
@@ -18,6 +19,7 @@ interface SlidesRequest {
   outline: string[];
   language: string;
   tone: string;
+  imageModel?: string; // For nano-banana full slide generation
 }
 
 // Compact prompt for fast generation
@@ -76,6 +78,91 @@ function shouldIncludeChart(slideIndex: number, totalSlides: number, topic: stri
   return isDataSlide && (isChartPosition || Math.random() < 0.15); // 15% chance for data slides
 }
 
+/**
+ * Generate full slide image using nano-banana (realtime mode)
+ */
+async function generateFullSlideImageRealtime(
+  topic: string,
+  index: number,
+  total: number,
+  language: string,
+  tone: string,
+  state: SlideState,
+  writer: WritableStreamDefaultWriter<Uint8Array>,
+  encoder: TextEncoder
+): Promise<{ index: number; success: boolean; content: string }> {
+  try {
+    // Emit generating event - NO TEXT, just the image placeholder
+    await writer.write(
+      encoder.encode(
+        `data: ${JSON.stringify({
+          type: "token",
+          index,
+          partial: `<SECTION layout="vertical">\n<FULL_SLIDE_IMAGE url="generating..." />\n</SECTION>`,
+        })}\n\n`
+      )
+    );
+
+    // Generate the full slide image
+    const result = await generateFullSlideImage({
+      slideTopic: topic,
+      slideNumber: index + 1,
+      totalSlides: total,
+      language,
+      tone,
+    });
+
+    if (!result.success || !result.url) {
+      throw new Error(result.error || "Failed to generate slide image");
+    }
+
+    // Create XML structure for full slide image - NO TEXT, just the image
+    const slideXml = `<SECTION layout="vertical">
+  <FULL_SLIDE_IMAGE url="${escapeXml(result.url)}" />
+</SECTION>`;
+
+    state.content = slideXml;
+    state.isComplete = true;
+
+    // Send complete event
+    await writer.write(
+      encoder.encode(
+        `data: ${JSON.stringify({
+          type: "slide_complete",
+          index,
+          content: slideXml,
+        })}\n\n`
+      )
+    );
+
+    return { index, success: true, content: slideXml };
+  } catch (error) {
+    console.error(`Error generating full slide image ${index}:`, error);
+    state.isComplete = true;
+    
+    await writer.write(
+      encoder.encode(
+        `data: ${JSON.stringify({
+          type: "slide_error",
+          index,
+          error: "Failed to generate slide image",
+        })}\n\n`
+      )
+    );
+
+    return { index, success: false, content: "" };
+  }
+}
+
+function escapeXml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
 // Track slide generation state
 interface SlideState {
   index: number;
@@ -91,7 +178,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { outline, language, tone } = (await req.json()) as SlidesRequest;
+    const { outline, language, tone, imageModel } = (await req.json()) as SlidesRequest;
 
     if (!outline || !Array.isArray(outline) || !language) {
       return NextResponse.json(
@@ -140,6 +227,20 @@ export async function POST(req: Request) {
           const state = slideStates[index]!;
 
           try {
+            // Check if using nano-banana for full slide image generation
+            if (imageModel === "nano-banana") {
+              return await generateFullSlideImageRealtime(
+                topic,
+                index,
+                total,
+                language,
+                tone,
+                state,
+                writer,
+                encoder
+              );
+            }
+
             // Use agent mode logic to determine if chart should be included
             const includeChart = shouldIncludeChart(index, total, topic);
             const chartHint = includeChart 

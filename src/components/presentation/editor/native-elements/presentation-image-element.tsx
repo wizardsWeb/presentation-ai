@@ -46,7 +46,7 @@ export const PresentationImageElement = withHOC(
       const [imageUrl, setImageUrl] = useState<string | undefined>(
         props.element.url
       );
-      const { imageModel } = usePresentationState();
+      const { imageModel, generationMode } = usePresentationState();
       const hasHandledGenerationRef = useRef(false);
 
       const generateImage = async (prompt: string) => {
@@ -61,7 +61,9 @@ export const PresentationImageElement = withHOC(
         setError(undefined);
         try {
           hasHandledGenerationRef.current = true;
-          const result = await generateImageAction(prompt, imageModel);
+          const result = await generateImageAction(prompt, imageModel, false, {
+            generationMode, // Pass generation mode to skip Gemini in quick mode
+          });
           if (
             result &&
             typeof result === "object" &&

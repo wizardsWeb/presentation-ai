@@ -19,6 +19,7 @@ interface AgentRequest {
   config?: Partial<AgentConfig>;
   teachingStyle?: TeachingStyle;
   audienceType?: AudienceType;
+  imageModel?: string; // For nano-banana full slide generation
 }
 
 const DEFAULT_AGENT_CONFIG: AgentConfig = {
@@ -36,7 +37,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { outline, language, tone, config: userConfig, teachingStyle, audienceType } =
+    const { outline, language, tone, config: userConfig, teachingStyle, audienceType, imageModel } =
       (await req.json()) as AgentRequest;
 
     if (!outline || !Array.isArray(outline) || !language) {
@@ -77,7 +78,8 @@ export async function POST(req: Request) {
             tone,
             config,
             (event) => sendEvent(event), // Forward ALL events including tokens
-            pedagogy // Pass pedagogy configuration
+            pedagogy, // Pass pedagogy configuration
+            imageModel // Pass imageModel for nano-banana support
           );
 
           // The agent already sends slide_complete and agent_done events

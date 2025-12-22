@@ -14,6 +14,10 @@ const config = {
       },
       {
         protocol: "https",
+        hostname: "mdv3b4d8f9.ufs.sh", // UploadThing file storage
+      },
+      {
+        protocol: "https",
         hostname: "i.ytimg.com",
       },
       {

@@ -14,6 +14,7 @@ import {
   type TeachingStyle, 
   type AudienceType 
 } from "@/states/presentation-state";
+import { generateFullSlideImage, generateSlideImagePrompt } from "@/lib/image/nano-banana-service";
 
 /**
  * Slide Generation Agent
@@ -327,6 +328,104 @@ export async function batchResearchTopics(
 }
 
 /**
+ * Generate a full slide as an image using nano-banana
+ */
+async function generateFullSlideImageWithNanoBanana(
+  topic: string,
+  index: number,
+  total: number,
+  language: string,
+  tone: string,
+  prefetchedResearch: string | undefined,
+  pedagogy: PedagogyConfig,
+  onEvent?: (event: AgentEvent) => void
+): Promise<SlideGenerationResult> {
+  const emit = (event: AgentEvent) => {
+    if (onEvent) {
+      onEvent({ ...event, slideIndex: index, totalSlides: total });
+    }
+  };
+
+  try {
+    emit({ type: "generating", message: "Generating full slide image..." });
+
+    // Generate the slide image prompt
+    const imagePrompt = generateSlideImagePrompt({
+      slideTopic: topic,
+      slideNumber: index + 1,
+      totalSlides: total,
+      language,
+      tone,
+      teachingStyle: pedagogy.teachingStyle,
+      audienceType: pedagogy.audienceType,
+      researchContext: prefetchedResearch,
+    });
+
+    // Generate the full slide image
+    console.log(`[Nano Banana] Generating slide ${index + 1} for topic: ${topic}`);
+    const result = await generateFullSlideImage({
+      slideTopic: topic,
+      slideNumber: index + 1,
+      totalSlides: total,
+      language,
+      tone,
+      teachingStyle: pedagogy.teachingStyle,
+      audienceType: pedagogy.audienceType,
+      researchContext: prefetchedResearch,
+    });
+
+    console.log(`[Nano Banana] Generation result:`, { success: result.success, hasUrl: !!result.url, error: result.error });
+
+    if (!result.success || !result.url) {
+      const errorMsg = result.error || "Failed to generate slide image";
+      console.error(`[Nano Banana] Generation failed:`, errorMsg);
+      emit({ type: "error", message: errorMsg });
+      return {
+        index,
+        content: "",
+        success: false,
+        researchUsed: !!prefetchedResearch,
+        refinementCount: 0,
+      };
+    }
+
+    console.log(`[Nano Banana] Image generated successfully, URL: ${result.url}`);
+
+    // Create XML structure for full slide image - NO TEXT, just the image
+    const slideXml = `<SECTION layout="vertical" section="${getSectionType(index, total)}">
+  <FULL_SLIDE_IMAGE url="${escapeXml(result.url)}" />
+</SECTION>`;
+
+    emit({
+      type: "slide_complete",
+      message: "Full slide image generated",
+      content: slideXml,
+      data: { isFullSlideImage: true },
+    });
+
+    return {
+      index,
+      content: slideXml,
+      success: true,
+      researchUsed: !!prefetchedResearch,
+      validationScore: 10,
+      refinementCount: 0,
+    };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Generation failed";
+    emit({ type: "error", message: errorMessage });
+
+    return {
+      index,
+      content: "",
+      success: false,
+      researchUsed: !!prefetchedResearch,
+      refinementCount: 0,
+    };
+  }
+}
+
+/**
  * Generate a single slide with the agent pipeline
  * Now accepts pre-fetched research for faster generation
  */
@@ -340,7 +439,8 @@ export async function generateSlideWithAgent(
   onEvent?: (event: AgentEvent) => void,
   previousLayouts: string[] = [],
   prefetchedResearch?: string, // Pre-fetched research context
-  pedagogy: PedagogyConfig = DEFAULT_PEDAGOGY // Pedagogy configuration
+  pedagogy: PedagogyConfig = DEFAULT_PEDAGOGY, // Pedagogy configuration
+  imageModel?: string // For nano-banana full slide generation
 ): Promise<SlideGenerationResult> {
   const emit = (event: AgentEvent) => {
     if (onEvent) {
@@ -354,6 +454,20 @@ export async function generateSlideWithAgent(
 
   try {
     emit({ type: "slide_start", message: `Slide ${index + 1}` });
+
+    // Check if using nano-banana for full slide image generation
+    if (imageModel === "nano-banana") {
+      return await generateFullSlideImageWithNanoBanana(
+        topic,
+        index,
+        total,
+        language,
+        tone,
+        prefetchedResearch,
+        pedagogy,
+        onEvent
+      );
+    }
 
     // Step 1: Web Research - only if not pre-fetched and enabled
     if (config.enableResearch && !prefetchedResearch) {
@@ -542,7 +656,8 @@ export async function generatePresentationWithAgent(
   tone: string,
   config: AgentConfig = DEFAULT_CONFIG,
   onEvent?: (event: AgentEvent) => void,
-  pedagogy: PedagogyConfig = DEFAULT_PEDAGOGY
+  pedagogy: PedagogyConfig = DEFAULT_PEDAGOGY,
+  imageModel?: string // For nano-banana full slide generation
 ): Promise<SlideGenerationResult[]> {
   const emit = (event: AgentEvent) => {
     if (onEvent) onEvent(event);
@@ -621,7 +736,8 @@ export async function generatePresentationWithAgent(
       onEvent,
       preCalculatedLayouts.slice(0, index),
       researchResults.get(index), // Pass pre-fetched research
-      pedagogy // Pass pedagogy configuration
+      pedagogy, // Pass pedagogy configuration
+      imageModel // Pass imageModel for nano-banana support
     )
   );
 

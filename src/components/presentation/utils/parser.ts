@@ -40,6 +40,10 @@ export type ChartElement = TElement & {
   chartType: string;
   data: Array<{ label: string; value: number }>;
 };
+export interface FullSlideImageElement extends TElement {
+  type: "full-slide-image";
+  url: string;
+}
 export type VisualizationItemElement = TElement & {
   type: "visualization-item";
 };
@@ -72,6 +76,7 @@ export type PlateNode =
   | StairItemElement
   | StaircaseElement
   | ChartElement
+  | FullSlideImageElement
   | VisualizationItemElement
   | VisualizationListElement
   | YouTubeElement;
@@ -618,6 +623,21 @@ export class SlideParser {
     let rootImage: { query: string; url?: string } | undefined = undefined;
 
     for (const child of sectionNode.children) {
+      // Check if this is a FULL_SLIDE_IMAGE (nano-banana full slide)
+      if (child.tag.toUpperCase() === "FULL_SLIDE_IMAGE") {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/255e23dc-8bb2-49a0-9f55-4824de3b4341',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'parser.ts:627',message:'Found FULL_SLIDE_IMAGE in parser',data:{attributes:child.attributes,hasUrl:!!child.attributes.url},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
+        const fullSlideImage = this.createFullSlideImage(child);
+        if (fullSlideImage) {
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/255e23dc-8bb2-49a0-9f55-4824de3b4341',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'parser.ts:632',message:'Created full slide image element',data:{url:fullSlideImage.url?.substring(0,50)??'MISSING',type:fullSlideImage.type},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+          // #endregion
+          plateElements.push(fullSlideImage);
+        }
+        continue;
+      }
+      
       // Check if this is a root-level IMG
       if (child.tag.toUpperCase() === "IMG") {
         // Only process if we have the complete original tag content
@@ -743,6 +763,9 @@ export class SlideParser {
 
       case "CHART":
         return this.createChart(node);
+
+      case "FULL_SLIDE_IMAGE":
+        return this.createFullSlideImage(node);
 
       // Handle all visualization types with a single function
       case "ARROWS":
@@ -1414,6 +1437,33 @@ export class SlideParser {
   }
 
   /**
+   * Create a full slide image element (nano-banana generated)
+   */
+  private createFullSlideImage(node: XMLNode): FullSlideImageElement | null {
+    // Try multiple ways to get the URL
+    let url = node.attributes.url ?? node.attributes.src ?? "";
+    
+    // If URL is empty, try to extract from originalTagContent
+    if (!url && node.originalTagContent) {
+      const urlMatch = node.originalTagContent.match(/url=["']([^"']+)["']/);
+      if (urlMatch && urlMatch[1]) {
+        url = urlMatch[1];
+      }
+    }
+    if (!url) {
+      return null;
+    }
+
+    const element: FullSlideImageElement = {
+      type: "full-slide-image",
+      url: url,
+      children: [{ text: "" } as TText],
+    };
+    
+    return element;
+  }
+
+  /**
    * Create a chart element
    */
   private createChart(node: XMLNode): ChartElement {
@@ -1706,6 +1756,9 @@ export class SlideParser {
 
       case "CHART":
         return this.createChart(node);
+
+      case "FULL_SLIDE_IMAGE":
+        return this.createFullSlideImage(node);
 
       // Handle visualization tags with a single function
       case "ARROWS":

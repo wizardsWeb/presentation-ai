@@ -32,7 +32,7 @@ export function PresentationGenerationManager() {
     setIsGeneratingPresentation,
     setYoutubeVideo,
     setIsSearchingYouTube,
-    generationMode: _generationMode,
+    generationMode,
     setExpectedSlideCount,
   } = usePresentationState();
 
@@ -339,16 +339,22 @@ export function PresentationGenerationManager() {
 
       // Reset YouTube state and start searching EARLY (during outline generation)
       // This gives the YouTube search a head start while the user reviews the outline
+      // BUT: Skip YouTube search in quick mode
       youtubeVideoRef.current = null;
       videoSlideInserted.current = false;
       youtubeSearchInProgressRef.current = false; // Reset search in progress flag
       lastSearchTopicRef.current = ""; // Reset last searched topic
       setYoutubeVideo(null);
       
-      const searchTopic = presentationInput ?? "";
-      if (searchTopic) {
-        console.log("Starting YouTube search early (during outline generation)");
-        void searchYouTubeVideo(searchTopic, language);
+      // Only search YouTube in research mode, not in quick mode
+      if (generationMode === "research") {
+        const searchTopic = presentationInput ?? "";
+        if (searchTopic) {
+          console.log("Starting YouTube search early (during outline generation)");
+          void searchYouTubeVideo(searchTopic, language);
+        }
+      } else {
+        console.log("Skipping YouTube search in quick mode");
       }
 
       try {
@@ -414,6 +420,9 @@ export function PresentationGenerationManager() {
     const parser = new SlideParser();
     parallelSlideParsersRef.current.set(slideIndex, parser);
 
+    // Get imageModel from state
+    const { imageModel } = usePresentationState.getState();
+
     try {
       const response = await fetch("/api/presentation/generate-slide", {
         method: "POST",
@@ -428,6 +437,7 @@ export function PresentationGenerationManager() {
           previousLayouts,
           teachingStyle,
           audienceType,
+          imageModel, // Pass imageModel to skip text generation for nano-banana
         }),
         signal: abortController.signal,
       });
@@ -485,15 +495,36 @@ export function PresentationGenerationManager() {
 
       // Final parse
       parser.reset();
-      parser.parseChunk(accumulatedContent);
+      
+      // Wrap in PRESENTATION tag if not already wrapped (required by parser)
+      const wrappedContent = accumulatedContent.trim().startsWith("<PRESENTATION>")
+        ? accumulatedContent
+        : `<PRESENTATION>${accumulatedContent}</PRESENTATION>`;
+      
+      console.log(`[Slide ${slideIndex + 1}] Parsing content:`, wrappedContent.substring(0, 200));
+      
+      parser.parseChunk(wrappedContent);
       parser.finalize();
       const slides = parser.getAllSlides();
       
+      console.log(`[Slide ${slideIndex + 1}] Parsed ${slides.length} slide(s)`);
+      
       if (slides.length > 0 && slides[0]) {
         const finalSlide = { ...slides[0], isGenerating: false };
+        console.log(`[Slide ${slideIndex + 1}] Final slide parsed successfully`);
+        console.log(`[Slide ${slideIndex + 1}] Slide content length:`, finalSlide.content?.length ?? 0);
+        console.log(`[Slide ${slideIndex + 1}] Slide content preview:`, JSON.stringify(finalSlide.content?.slice(0, 3), null, 2));
+        
+        // Verify the slide has content
+        if (!finalSlide.content || finalSlide.content.length === 0) {
+          console.error(`[Slide ${slideIndex + 1}] WARNING: Slide has no content!`);
+          console.error(`[Slide ${slideIndex + 1}] Original XML:`, accumulatedContent);
+        }
+        
         return finalSlide;
       }
       
+      console.error(`[Slide ${slideIndex + 1}] No slide parsed. Content was:`, accumulatedContent);
       throw new Error("No slide parsed from response");
     } catch (error) {
       if ((error as Error).name === "AbortError") {
@@ -542,8 +573,30 @@ export function PresentationGenerationManager() {
     // Set expected slide count IMMEDIATELY for UI feedback
     setExpectedSlideCount(outline.length);
     
+    // Get imageModel from state to determine placeholder type
+    const { imageModel } = usePresentationState.getState();
+    const isNanoBanana = imageModel === "nano-banana";
+    
     // Initialize placeholder slides for IMMEDIATE UI feedback
     const placeholderSlides: PlateSlide[] = outline.map((item, index) => {
+      // For nano-banana: NO TEXT placeholders, just image placeholder
+      if (isNanoBanana) {
+        return {
+          id: nanoid(),
+          layoutType: "vertical" as const,
+          isGenerating: true,
+          content: [
+            {
+              id: nanoid(),
+              type: "full-slide-image" as const,
+              url: "generating...",
+              children: [{ text: "" }],
+            } as const,
+          ],
+        };
+      }
+      
+      // For regular slides: show text placeholders
       // Extract title from outline item (handles [section] # Title format)
       const titleMatch = item.match(/(?:\[[\w-]+\]\s*)?#\s*(.+?)(?:\n|$)/);
       const slideTitle = titleMatch?.[1]?.trim() ?? `Slide ${index + 1}`;
@@ -610,9 +663,7 @@ export function PresentationGenerationManager() {
       
       if (slide) {
         slidesArrayRef.current[index] = slide;
-        // Update slides immediately as each completes
         setSlides([...slidesArrayRef.current]);
-        console.log(`Completed slide ${index + 1}/${outline.length}`);
       }
       
       return slide;
@@ -743,6 +794,9 @@ export function PresentationGenerationManager() {
         theme,
         generationMode: currentGenerationMode,
       } = usePresentationState.getState();
+      
+      // Type guard to ensure currentGenerationMode is valid
+      const isResearchMode = currentGenerationMode === "research";
 
       // Reset the parser before starting a new generation
       streamingParserRef.current.reset();
@@ -755,14 +809,19 @@ export function PresentationGenerationManager() {
 
       // Only start YouTube search if we don't already have a video from outline generation
       // This prevents duplicate searches and makes generation faster
-      if (!youtubeVideoRef.current) {
-        const searchTopic = presentationInput ?? currentPresentationTitle ?? "";
-        if (searchTopic) {
-          console.log("Starting YouTube search (no video from outline phase)");
-          void searchYouTubeVideo(searchTopic, language);
+      // BUT: Skip YouTube search entirely in quick mode
+      if (isResearchMode) {
+        if (!youtubeVideoRef.current) {
+          const searchTopic = presentationInput ?? currentPresentationTitle ?? "";
+          if (searchTopic) {
+            console.log("Starting YouTube search (no video from outline phase)");
+            void searchYouTubeVideo(searchTopic, language);
+          }
+        } else {
+          console.log("Using YouTube video found during outline generation:", youtubeVideoRef.current.title);
         }
       } else {
-        console.log("Using YouTube video found during outline generation:", youtubeVideoRef.current.title);
+        console.log("Skipping YouTube search in quick mode");
       }
 
       // Use parallel generation for "quick" mode, sequential for "research"
@@ -781,10 +840,11 @@ export function PresentationGenerationManager() {
               audienceType ?? "professional",
             );
 
-            // Insert YouTube video slide if available
+            // Insert YouTube video slide if available (only in research mode)
             let finalSlides = slides;
-            const { youtubeVideo } = usePresentationState.getState();
-            if (youtubeVideo && !videoSlideInserted.current && slides.length >= 1) {
+            const state = usePresentationState.getState();
+            const youtubeVideo = state.youtubeVideo;
+            if (isResearchMode && youtubeVideo && !videoSlideInserted.current && slides.length >= 1) {
               finalSlides = insertVideoSlideIfAvailable(slides);
             }
 

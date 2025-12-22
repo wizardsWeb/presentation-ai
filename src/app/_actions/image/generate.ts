@@ -22,7 +22,8 @@ export type ImageModelList =
   | "black-forest-labs/FLUX.1-pro"
   | "black-forest-labs/FLUX.1-dev"
   | "pollinations"
-  | "unsplash"; // Fast stock photos
+  | "unsplash" // Fast stock photos
+  | "nano-banana"; // Full slide image generation
 
 export type ImageQuality = "low" | "medium" | "high";
 
@@ -40,6 +41,8 @@ export interface EnhancedImageOptions {
   quality?: ImageQuality;
   /** Hint for smart provider selection */
   category?: ImageCategory;
+  /** Generation mode - quick mode skips Gemini enhancement and uses Unsplash directly */
+  generationMode?: "quick" | "research";
 }
 
 /**
@@ -71,21 +74,26 @@ export async function generateImageAction(
     fallbackEnabled = true,
     quality = "medium",
     category,
+    generationMode,
   } = options;
 
   try {
-    // Map legacy model to new provider type
-    const provider: ImageProvider = mapLegacyModel(model);
+    // In quick mode, skip model mapping and force Unsplash
+    // In research mode or default, use the specified model
+    const provider: ImageProvider = generationMode === "quick" 
+      ? "unsplash" 
+      : mapLegacyModel(model);
     
     // Use the enhanced image service with all optimizations
     const result: ImageResult = await generateImage({
       prompt,
       provider,
-      enhancePrompt,
+      enhancePrompt: generationMode === "quick" ? false : enhancePrompt, // Skip enhancement in quick mode
       fallbackEnabled,
       maxRetries: 2,
       quality,
       category,
+      generationMode, // Pass generation mode to image service
     });
 
     if (!result.success || !result.url) {

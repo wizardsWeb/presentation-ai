@@ -20,13 +20,15 @@ import { ThemeModal } from "./ThemeModal";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
-export const IMAGE_MODELS: { value: ImageModelList; label: string }[] = [
-  { value: "pollinations", label: "Pollinations (Free)" },
-  { value: "black-forest-labs/FLUX.1-schnell-Free", label: "FLUX.1 [schnell] Free" },
-  { value: "black-forest-labs/FLUX1.1-pro", label: "FLUX 1.1 [pro]" },
-  { value: "black-forest-labs/FLUX.1-schnell", label: "FLUX.1 [schnell]" },
-  { value: "black-forest-labs/FLUX.1-pro", label: "FLUX.1 [pro]" },
-  { value: "black-forest-labs/FLUX.1-dev", label: "FLUX.1 [dev]" },
+export const IMAGE_MODELS: { value: ImageModelList; label: string; description?: string }[] = [
+  { value: "unsplash", label: "Unsplash (Fast Stock Photos)", description: "Quick stock photos" },
+  { value: "pollinations", label: "Pollinations (Free AI)", description: "Free AI image generation" },
+  { value: "black-forest-labs/FLUX.1-schnell-Free", label: "FLUX.1 [schnell] Free", description: "Fast AI generation" },
+  { value: "black-forest-labs/FLUX1.1-pro", label: "FLUX 1.1 [pro]", description: "High quality AI" },
+  { value: "black-forest-labs/FLUX.1-schnell", label: "FLUX.1 [schnell]", description: "Turbo AI generation" },
+  { value: "black-forest-labs/FLUX.1-pro", label: "FLUX.1 [pro]", description: "Professional AI" },
+  { value: "black-forest-labs/FLUX.1-dev", label: "FLUX.1 [dev]", description: "Experimental AI" },
+  { value: "nano-banana", label: "Nano Banana (Full Slide)", description: "Generate entire slide as image - perfect, detailed slides" },
 ];
 
 const PRESENTATION_STYLES = [

@@ -25,7 +25,8 @@ export type ImageProvider =
   | "pollinations"
   | "flux-schnell"
   | "flux-pro"
-  | "flux-dev";
+  | "flux-dev"
+  | "nano-banana";
 
 export type ImageCategory = 
   | "photo"      // Real photos (people, places, objects)
@@ -44,6 +45,7 @@ export interface ImageGenerationOptions {
   maxRetries?: number;
   category?: ImageCategory; // Hint for smart provider selection
   quality?: "low" | "medium" | "high"; // Quality tier
+  generationMode?: "quick" | "research"; // Generation mode - quick mode skips Gemini enhancement
 }
 
 export interface ImageResult {
@@ -592,6 +594,7 @@ export async function generateImage(options: ImageGenerationOptions): Promise<Im
     maxRetries = 2,
     category,
     quality = "medium",
+    generationMode,
   } = options;
 
   // Step 0: Check cache first
@@ -608,21 +611,41 @@ export async function generateImage(options: ImageGenerationOptions): Promise<Im
     };
   }
 
-  // Step 1: Analyze prompt category for smart selection
-  const detectedCategory = category ?? analyzePromptCategory(prompt);
+  // QUICK MODE OPTIMIZATION: Skip Gemini enhancement and use Unsplash directly
+  const isQuickMode = generationMode === "quick";
+  
+  // Step 1: Analyze prompt category for smart selection (skip in quick mode for speed)
+  const detectedCategory = isQuickMode ? "photo" : (category ?? analyzePromptCategory(prompt));
   
   // Step 2: Select optimal provider if not specified
-  const selectedProvider = provider ?? selectOptimalProvider(detectedCategory, quality);
+  // CRITICAL: Never use nano-banana for regular image generation
+  // In quick mode, force Unsplash for speed (no Gemini API call needed)
+  let selectedProvider: ImageProvider;
+  if (isQuickMode) {
+    selectedProvider = "unsplash"; // Direct to Unsplash in quick mode
+    console.log(`[Quick Mode] Using Unsplash directly (skipping Gemini enhancement)`);
+  } else {
+    selectedProvider = provider ?? selectOptimalProvider(detectedCategory, quality);
+  }
   
-  console.log(`Image generation: category=${detectedCategory}, provider=${selectedProvider}`);
+  // If somehow nano-banana was selected, force fallback to unsplash
+  if (selectedProvider === "nano-banana") {
+    console.warn("[Image Service] nano-banana detected in regular image generation - forcing fallback to unsplash");
+    selectedProvider = "unsplash";
+  }
+  
+  console.log(`Image generation: category=${detectedCategory}, provider=${selectedProvider}, mode=${generationMode ?? "default"}`);
 
-  // Step 3: Enhance prompt with Gemini (optional, uses cache)
+  // Step 3: Enhance prompt with Gemini (SKIP in quick mode for speed)
   let finalPrompt = prompt;
   let enhancedPrompt: string | undefined;
   
-  if (enhancePrompt) {
+  if (enhancePrompt && !isQuickMode) {
+    // Only enhance in research mode or when explicitly requested (not quick mode)
     enhancedPrompt = await enhancePromptWithGemini(prompt, detectedCategory);
     finalPrompt = enhancedPrompt;
+  } else if (isQuickMode) {
+    console.log(`[Quick Mode] Skipping Gemini prompt enhancement for speed`);
   }
 
   // Step 4: Define fallback chain based on selected provider
@@ -697,7 +720,14 @@ export async function generateImage(options: ImageGenerationOptions): Promise<Im
  * Get fallback chain based on primary provider
  */
 function getFallbackChain(primary: ImageProvider): ImageProvider[] {
-  const chains: Record<ImageProvider, ImageProvider[]> = {
+  // CRITICAL: nano-banana should NEVER be in the fallback chain
+  // It's ONLY for full slide generation, not regular images
+  if (primary === "nano-banana") {
+    console.error("[Image Service] ERROR: nano-banana should never be used for regular image generation!");
+    return ["unsplash", "pexels", "pollinations"]; // Force fallback
+  }
+  
+  const chains: Record<Exclude<ImageProvider, "nano-banana">, ImageProvider[]> = {
     "unsplash": ["unsplash", "pexels", "pollinations"],
     "pexels": ["pexels", "unsplash", "pollinations"],
     "pollinations": ["pollinations", "unsplash", "pexels"],
@@ -706,7 +736,7 @@ function getFallbackChain(primary: ImageProvider): ImageProvider[] {
     "flux-dev": ["flux-dev", "flux-schnell", "pollinations", "unsplash"],
   };
   
-  return chains[primary] ?? ["unsplash", "pollinations"];
+  return chains[primary as Exclude<ImageProvider, "nano-banana">] ?? ["unsplash", "pollinations"];
 }
 
 /**
@@ -726,6 +756,12 @@ async function tryProvider(provider: ImageProvider, prompt: string): Promise<str
       return generateWithFlux(prompt, "pro");
     case "flux-dev":
       return generateWithFlux(prompt, "dev");
+    case "nano-banana":
+      // nano-banana should NEVER be used for regular image generation
+      // It's ONLY for full slide generation via generateFullSlideImage()
+      // This should never be called - if it is, return null immediately
+      console.error("ERROR: nano-banana should not be used for regular image generation. Use generateFullSlideImage() instead.");
+      return null;
     default:
       return null;
   }
@@ -928,6 +964,7 @@ export function mapLegacyModel(model: string): ImageProvider {
     "black-forest-labs/FLUX.1-pro": "flux-pro",
     "black-forest-labs/FLUX1.1-pro": "flux-pro",
     "black-forest-labs/FLUX.1-dev": "flux-dev",
+    "nano-banana": "nano-banana",
   };
   
   return mapping[model] ?? "unsplash";

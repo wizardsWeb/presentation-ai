@@ -89,18 +89,7 @@ export default function PresentationPage() {
   // Create a debounced function to update the theme in the database
   const debouncedThemeUpdate = useCallback(
     debounce((presentationId: string, newTheme: string) => {
-      console.log("Updating theme in database:", newTheme);
-      updatePresentationTheme(presentationId, newTheme)
-        .then((result) => {
-          if (result.success) {
-            console.log("Theme updated in database");
-          } else {
-            console.error("Failed to update theme:", result.message);
-          }
-        })
-        .catch((error) => {
-          console.error("Error updating theme:", error);
-        });
+      void updatePresentationTheme(presentationId, newTheme);
     }, 600),
     []
   );
@@ -113,7 +102,6 @@ export default function PresentationPage() {
     }
 
     if (presentationData) {
-      console.log("Loading complete presentation data:", presentationData);
       setCurrentPresentation(presentationData.id, presentationData.title);
       setPresentationInput(presentationData.title);
 
@@ -122,8 +110,13 @@ export default function PresentationPage() {
         slides: PlateSlide[];
       };
 
-      // Set slides
-      setSlides(presentationContent?.slides ?? []);
+      const loadedSlides = presentationContent?.slides ?? [];
+      // #region agent log
+      const firstSlide = loadedSlides[0];
+      const firstElement = firstSlide?.content?.[0] as any;
+      fetch('http://127.0.0.1:7242/ingest/255e23dc-8bb2-49a0-9f55-4824de3b4341',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Main.tsx:126',message:'Loaded slides from database',data:{slideCount:loadedSlides.length,firstElement:JSON.stringify(firstElement),firstElementType:firstElement?.type,firstElementUrl:firstElement?.url?.substring(0,50)??'MISSING'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
+      setSlides(loadedSlides);
 
       // Set outline
       if (presentationData.presentation?.outline) {

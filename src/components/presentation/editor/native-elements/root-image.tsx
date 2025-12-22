@@ -32,7 +32,7 @@ export default function RootImage({
   layoutType?: string;
   shouldGenerate?: boolean;
 }) {
-  const { setSlides, imageModel } = usePresentationState();
+  const { setSlides, imageModel, generationMode } = usePresentationState();
   const { saveImmediately } = useDebouncedSave();
   const id = useId();
   const [imageUrl, setImageUrl] = useState<string | undefined>(image.url);
@@ -63,7 +63,9 @@ export default function RootImage({
     setIsGenerating(true);
     setError(undefined);
     try {
-      const result = await generateImageAction(prompt, imageModel);
+      const result = await generateImageAction(prompt, imageModel, false, {
+        generationMode, // Pass generation mode to skip Gemini in quick mode
+      });
       if (result.image?.url) {
         const newImageUrl = result.image.url;
         setImageUrl(newImageUrl);
