@@ -25,18 +25,27 @@ interface OutlineRequest {
 const getLanguageName = (langCode: string): string => {
   const languageMap: Record<string, string> = {
     "en-US": "English",
+    "en-GB": "English",
     "en": "English",
     "hi": "Hindi",
-    "pt": "Portuguese",
     "es": "Spanish",
     "fr": "French",
     "de": "German",
-    "it": "Italian",
+    "pt": "Portuguese",
+    "zh": "Chinese",
     "ja": "Japanese",
     "ko": "Korean",
-    "zh": "Chinese",
-    "ru": "Russian",
     "ar": "Arabic",
+    "ru": "Russian",
+    "it": "Italian",
+    "nl": "Dutch",
+    "pl": "Polish",
+    "tr": "Turkish",
+    "vi": "Vietnamese",
+    "ta": "Tamil",
+    "te": "Telugu",
+    "mr": "Marathi",
+    "bn": "Bengali",
   };
   return languageMap[langCode] ?? langCode;
 };

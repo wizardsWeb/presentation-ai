@@ -15,9 +15,9 @@ export default function PresentationLayout({
           <ChatGPTSidebar />
           <main className="flex-1 overflow-y-auto bg-[#0f0f0f]">
             <div className="sheet-container min-h-full">
-              {children}
-            </div>
-          </main>
+            {children}
+          </div>
+        </main>
         </div>
       </div>
     </>

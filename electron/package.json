@@ -1,0 +1,8 @@
+{
+  "name": "presentation-ai-electron",
+  "version": "0.1.0",
+  "description": "Presentation AI Desktop App",
+  "main": "main.js",
+  "private": true
+}
+

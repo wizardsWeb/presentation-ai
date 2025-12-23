@@ -34,24 +34,36 @@ export function PresenterNotes() {
     setSelectedSlideIndex(null);
   }, [slides.length]);
 
+  // Check if we're in offline mode (presentation ID starts with "offline-")
+  const isOfflineMode = currentPresentationId?.startsWith("offline-") ?? false;
+
   // Load existing presenter notes from database when presentation loads
   useEffect(() => {
+    // Skip API calls in offline mode
+    if (isOfflineMode) return;
+    
     if (currentPresentationId && slides.length > 0 && notes.length === 0 && !loading) {
       void loadExistingNotes();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPresentationId, slides.length]);
+  }, [currentPresentationId, slides.length, isOfflineMode]);
 
   // Generate presenter notes when sheet opens (if not already loaded)
   useEffect(() => {
+    // Skip API calls in offline mode
+    if (isOfflineMode) return;
+    
     if (isSheetOpen && slides.length > 0 && notes.length === 0 && !loading) {
       void generateNotes();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSheetOpen]);
+  }, [isSheetOpen, isOfflineMode]);
 
   const loadExistingNotes = async () => {
-    if (!currentPresentationId || slides.length === 0) return;
+    // Skip in offline mode
+    if (isOfflineMode) return false;
+    
+    if (!currentPresentationId || slides.length === 0) return false;
 
     try {
       const response = await fetch(`/api/presentation/presenter-notes?presentationId=${currentPresentationId}`);
@@ -63,12 +75,21 @@ export function PresenterNotes() {
         }
       }
     } catch (err) {
-      console.error("Error loading existing presenter notes:", err);
+      // Silently fail in offline mode
+      if (!isOfflineMode) {
+        console.error("Error loading existing presenter notes:", err);
+      }
     }
     return false; // No existing notes found
   };
 
   const generateNotes = async () => {
+    // Skip in offline mode
+    if (isOfflineMode) {
+      setError("Presenter notes are not available in offline mode.");
+      return;
+    }
+    
     if (slides.length === 0) return;
 
     // First try to load existing notes

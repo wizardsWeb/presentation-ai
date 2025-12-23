@@ -94,23 +94,12 @@ const createEditor = () => {
     [FullSlideImagePlugin.key]: withProps(FullSlideImageElement, {}),
   });
   
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/255e23dc-8bb2-49a0-9f55-4824de3b4341',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'presentation-editor.tsx:createEditor',message:'Creating editor with components',data:{componentsKeys:Object.keys(components),hasFullSlideImage:FullSlideImagePlugin.key in components,fullSlideImageKey:FullSlideImagePlugin.key},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
-  // #endregion
-  
   const editor = createPlateEditor({
     plugins: [...basicNodesPlugins, ...presentationPlugins],
     override: {
       components,
     },
   });
-
-  // #region agent log
-  const pluginsList = Array.isArray(editor.plugins) ? editor.plugins : (editor.plugins as any)?.byKey ? Object.values((editor.plugins as any).byKey) : [];
-  const hasFullSlideImagePlugin = pluginsList.some((p: any) => p?.key === FullSlideImagePlugin.key);
-  const fullSlideImagePlugin = pluginsList.find((p: any) => p?.key === FullSlideImagePlugin.key);
-  fetch('http://127.0.0.1:7242/ingest/255e23dc-8bb2-49a0-9f55-4824de3b4341',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'presentation-editor.tsx:createEditor:after',message:'Editor created',data:{hasOverride:!!editor.override,hasComponents:!!(editor.override as any)?.components,componentsKeys:Object.keys((editor.override as any)?.components||{}),pluginsCount:pluginsList.length,hasFullSlideImagePlugin,fullSlideImagePluginHasComponent:!!fullSlideImagePlugin?.component},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
-  // #endregion
 
   return editor;
 };
@@ -149,25 +138,13 @@ const PresentationEditor = React.memo(
     // Initialize/update editor content when slide ID changes
     useEffect(() => {
       if (initialContent?.content && editor) {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/255e23dc-8bb2-49a0-9f55-4824de3b4341',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'presentation-editor.tsx:138',message:'Editor useEffect triggered',data:{slideIndex,hasContent:!!initialContent.content,contentLength:initialContent.content.length,contentTypes:initialContent.content.map((n:any)=>n.type),hasFullSlideImage:initialContent.content.some((n:any)=>n.type==='full-slide-image')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-        // #endregion
         // Only update if content actually changed
         const currentValue = editor.children;
         const contentChanged = JSON.stringify(currentValue) !== JSON.stringify(initialContent.content);
         
         if (contentChanged) {
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/255e23dc-8bb2-49a0-9f55-4824de3b4341',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'presentation-editor.tsx:145',message:'Setting editor value',data:{slideIndex,contentLength:initialContent.content.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-          // #endregion
           setTimeout(() => {
             editor.tf.setValue(initialContent.content);
-            // #region agent log
-            const firstChild = editor.children[0];
-            const override = editor.override as any;
-            const plugins = Array.isArray(editor.plugins) ? editor.plugins : [];
-            fetch('http://127.0.0.1:7242/ingest/255e23dc-8bb2-49a0-9f55-4824de3b4341',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'presentation-editor.tsx:151',message:'Editor value set',data:{slideIndex,editorChildrenLength:editor.children.length,firstChildType:firstChild?.type,firstChild:JSON.stringify(firstChild),pluginKey:FullSlideImagePlugin.key,hasPlugin:plugins.some((p:any)=>p.key===FullSlideImagePlugin.key),componentsKeys:Object.keys(override?.components||{})},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
-            // #endregion
           }, 0);
         }
       }
@@ -217,9 +194,6 @@ const PresentationEditor = React.memo(
             editor={editor}
             onValueChange={({ value }) => {
               if (readOnly || isGenerating || isPresenting) return;
-              // #region agent log
-              fetch('http://127.0.0.1:7242/ingest/255e23dc-8bb2-49a0-9f55-4824de3b4341',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'presentation-editor.tsx:onValueChange',message:'Plate onValueChange',data:{valueLength:value.length,valueTypes:value.map((n:any)=>n.type),hasFullSlideImage:value.some((n:any)=>n.type==='full-slide-image')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
-              // #endregion
               debouncedOnChange(value, slideIndex);
             }}
             readOnly={isGenerating || readOnly}

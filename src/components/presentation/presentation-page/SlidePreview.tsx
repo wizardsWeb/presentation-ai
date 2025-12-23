@@ -48,7 +48,7 @@ export function SlidePreview({
                 onSlideClick(index);
               }}
             >
-              <div className="absolute left-1.5 top-1 z-10 flex items-center gap-1">
+              <div className="absolute left-1.5 top-1 z-0 flex items-center gap-1">
                 <span className="rounded bg-background/90 px-1.5 py-0.5 text-[10px] font-semibold text-foreground shadow-sm backdrop-blur-sm">
                   {index + 1}
                 </span>

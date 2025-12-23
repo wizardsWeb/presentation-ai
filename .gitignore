@@ -15,6 +15,7 @@
 
 # production
 /build
+/dist-electron
 
 # misc
 .DS_Store
@@ -28,6 +29,7 @@ yarn-error.log*
 # local env files
 .env*.local
 .env
+
 # vercel
 .vercel
 
@@ -35,4 +37,177 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-merged_fine_tuned_phi_model/
+# prisma
+/prisma/migrations
+
+# electron
+/electron/dist
+/electron/out
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# ============================================================================
+# LARGE MODEL FILES - AI/ML Models
+# ============================================================================
+# Model files (can be very large - several GB)
+*.gguf
+*.ggml
+*.bin
+*.safetensors
+*.pt
+*.pth
+*.ckpt
+*.h5
+*.pb
+*.onnx
+*.tflite
+*.pkl
+*.pickle
+*.joblib
+
+# Model directories
+/models/
+/checkpoints/
+/weights/
+/pretrained/
+/merged_fine_tuned_phi_model/
+
+# ============================================================================
+# LLAMA.CPP - Third-party dependency (exclude entire directory)
+# ============================================================================
+# llama.cpp is a large third-party repository - exclude it entirely
+# Users should clone it separately: git clone https://github.com/ggerganov/llama.cpp.git backend/llama.cpp
+# Or use it as a git submodule
+backend/llama.cpp/
+
+# ============================================================================
+# PYTHON ENVIRONMENT & CACHE
+# ============================================================================
+# Python virtual environments
+venv/
+env/
+ENV/
+.venv/
+.env/
+virtualenv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Python distribution / packaging
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.manifest
+*.spec
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+*.ipynb
+
+# ============================================================================
+# DATA FILES & INDICES
+# ============================================================================
+# FAISS indices and vector stores
+backend/faiss_store/
+*.faiss
+*.index
+faiss_index.bin
+faiss_metadata.pkl
+
+# PDF files (textbooks, documents)
+backend/textbooks/*.pdf
+*.pdf
+
+# Large data files
+*.csv
+*.tsv
+*.parquet
+*.feather
+*.arrow
+*.hdf5
+*.h5
+
+# ============================================================================
+# BUILD ARTIFACTS & CACHE
+# ============================================================================
+# CMake build files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake
+!CMakeLists.txt
+
+# Compiled object files
+*.o
+*.obj
+*.a
+*.lib
+*.dylib
+*.dll
+*.exe
+
+# ============================================================================
+# LOGS & TEMPORARY FILES
+# ============================================================================
+*.log
+*.tmp
+*.temp
+*.cache
+.cache/
+*.swp
+*.swo
+*~
+
+# ============================================================================
+# ASSETS & UPLOADS
+# ============================================================================
+# Uploaded/generated assets (keep structure, ignore large files)
+assets/*.png
+assets/*.jpg
+assets/*.jpeg
+assets/*.gif
+assets/*.mp4
+assets/*.mov
+assets/*.webm
+!assets/.gitkeep
+
+# ============================================================================
+# DATABASE & BACKUP FILES
+# ============================================================================
+*.db
+*.sqlite
+*.sqlite3
+*.dump
+*.backup
+*.bak
+
+# ============================================================================
+# ELECTRON BUILD OUTPUTS
+# ============================================================================
+dist-electron/
+electron/dist/
+electron/out/
+*.dmg
+*.exe
+*.deb
+*.rpm
+*.AppImage
+*.snap

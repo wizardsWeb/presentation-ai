@@ -16,10 +16,6 @@ export const FullSlideImageElement = withRef<typeof PlateElement>(
     const fullSlideElement = element as FullSlideImageElement;
     const { url } = fullSlideElement;
 
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/255e23dc-8bb2-49a0-9f55-4824de3b4341',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'full-slide-image-element.tsx:17',message:'FullSlideImageElement rendering',data:{hasUrl:!!url,url:url?.substring(0,50)??'MISSING',elementType:element.type},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-    // #endregion
-
     if (!url || url === "generating...") {
       return (
         <PlateElement ref={ref} className={cn(className, "my-4")} element={element} {...props}>
@@ -34,9 +30,6 @@ export const FullSlideImageElement = withRef<typeof PlateElement>(
       );
     }
 
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/255e23dc-8bb2-49a0-9f55-4824de3b4341',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'full-slide-image-element.tsx:33',message:'Rendering image element',data:{url:url.substring(0,50)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-    // #endregion
     return (
       <PlateElement ref={ref} className={cn(className, "w-full my-4")} element={element} {...props}>
         <div 
@@ -53,8 +46,6 @@ export const FullSlideImageElement = withRef<typeof PlateElement>(
               className="object-contain rounded-lg"
               unoptimized
               priority
-              onLoad={()=>{fetch('http://127.0.0.1:7242/ingest/255e23dc-8bb2-49a0-9f55-4824de3b4341',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'full-slide-image-element.tsx:onLoad',message:'Image loaded successfully',data:{url:url.substring(0,50)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});}}
-              onError={(e)=>{fetch('http://127.0.0.1:7242/ingest/255e23dc-8bb2-49a0-9f55-4824de3b4341',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'full-slide-image-element.tsx:onError',message:'Image failed to load',data:{url:url.substring(0,50),error:String(e)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});}}
             />
           </div>
         </div>

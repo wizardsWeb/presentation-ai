@@ -26,6 +26,14 @@ const config = {
       },
     ],
   },
+  
+  // Electron-specific optimizations
+  ...(process.env.ELECTRON === 'true' && {
+    // Disable image optimization in Electron for better performance
+    images: {
+      unoptimized: true,
+    },
+  }),
 };
 
 export default config;

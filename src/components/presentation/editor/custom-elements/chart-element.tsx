@@ -193,7 +193,7 @@ const ChartComponent = withRef<typeof PlateElement>(
 
     if (!data || data.length === 0) {
       return (
-        <PlateElement ref={ref} className={cn(className)} {...props}>
+        <PlateElement ref={ref} className={cn(className)} element={element} {...props}>
           <div className="w-full h-64 flex items-center justify-center border border-dashed border-muted rounded-lg">
             <p className="text-muted-foreground text-sm">No chart data available</p>
           </div>
@@ -203,7 +203,7 @@ const ChartComponent = withRef<typeof PlateElement>(
     }
 
     return (
-      <PlateElement ref={ref} className={cn(className, "my-4")} {...props}>
+      <PlateElement ref={ref} className={cn(className, "my-4")} element={element} {...props}>
         <div className="w-full h-64">
           <ChartContainer config={config}>
             {renderChart()}

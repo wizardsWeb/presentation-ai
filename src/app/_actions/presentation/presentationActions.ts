@@ -61,11 +61,37 @@ export async function createPresentation(
 
 export async function createEmptyPresentation(
   title: string,
-  theme = "default"
+  theme = "default",
+  language?: string
 ) {
-  const emptyContent: { slides: PlateSlide[] } = { slides: [] };
+  try {
+    const emptyContent: { slides: PlateSlide[] } = { slides: [] };
 
-  return createPresentation(emptyContent, title, theme);
+    return await createPresentation(emptyContent, title, theme, undefined, undefined, undefined, language);
+  } catch (error) {
+    // Handle database connection errors gracefully
+    console.error("[createEmptyPresentation] Error:", error);
+    
+    const isConnectionError = error instanceof Error && (
+      error.message.includes("Can't reach database server") ||
+      error.message.includes("connection") ||
+      error.message.includes("timeout") ||
+      error.name === "PrismaClientInitializationError"
+    );
+
+    if (isConnectionError) {
+      console.warn("[createEmptyPresentation] Database unavailable");
+      return {
+        success: false,
+        message: "Database connection unavailable. Please check your database connection or use offline mode.",
+      };
+    }
+
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Failed to create presentation",
+    };
+  }
 }
 
 export async function updatePresentation({

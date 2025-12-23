@@ -625,14 +625,8 @@ export class SlideParser {
     for (const child of sectionNode.children) {
       // Check if this is a FULL_SLIDE_IMAGE (nano-banana full slide)
       if (child.tag.toUpperCase() === "FULL_SLIDE_IMAGE") {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/255e23dc-8bb2-49a0-9f55-4824de3b4341',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'parser.ts:627',message:'Found FULL_SLIDE_IMAGE in parser',data:{attributes:child.attributes,hasUrl:!!child.attributes.url},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-        // #endregion
         const fullSlideImage = this.createFullSlideImage(child);
         if (fullSlideImage) {
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/255e23dc-8bb2-49a0-9f55-4824de3b4341',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'parser.ts:632',message:'Created full slide image element',data:{url:fullSlideImage.url?.substring(0,50)??'MISSING',type:fullSlideImage.type},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-          // #endregion
           plateElements.push(fullSlideImage);
         }
         continue;

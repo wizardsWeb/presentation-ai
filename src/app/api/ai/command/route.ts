@@ -77,49 +77,59 @@ export async function POST(req: Request) {
 
     // Use streamText with Gemini model for real-time streaming
     // AI SDK v5 supports Google models with specification v2
-    const result = streamText({
-      model: google("gemini-2.5-flash", {
-        apiKey: googleApiKey,
-      }),
-      system: systemPrompt,
-      messages: chatMessages,
-      temperature: 0.7,
-      maxTokens: 2000,
-    });
+    // Set API key in environment for this request
+    const originalApiKey = process.env.GOOGLE_API_KEY;
+    process.env.GOOGLE_API_KEY = googleApiKey;
+    
+    try {
+      const result = streamText({
+        model: google("gemini-2.5-flash") as any, // Type assertion to handle v1/v2 compatibility
+        system: systemPrompt,
+        messages: chatMessages,
+        temperature: 0.7,
+        maxTokens: 2000,
+      });
 
-    // Convert v5 stream format to v4 format for Plate AI plugin compatibility
-    // Plate AI expects lines starting with "0:" followed by JSON string
-    const encoder = new TextEncoder();
-    const stream = new ReadableStream({
-      async start(controller) {
-        try {
-          // Stream text deltas in the format Plate AI expects
-          for await (const part of result.textStream) {
-            if (part.type === "text-delta") {
+      // Convert v5 stream format to v4 format for Plate AI plugin compatibility
+      // Plate AI expects lines starting with "0:" followed by JSON string
+      // In AI SDK v5, textStream yields strings directly
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream({
+        async start(controller) {
+          try {
+            // Stream text deltas in the format Plate AI expects
+            for await (const textDelta of result.textStream) {
               // Format as "0:" + JSON.stringify(text) + "\n"
-              const line = `0:${JSON.stringify(part.delta)}\n`;
+              const line = `0:${JSON.stringify(textDelta)}\n`;
               controller.enqueue(encoder.encode(line));
             }
+            // Send finish event
+            controller.enqueue(encoder.encode(`d:{"type":"finish"}\n`));
+            controller.close();
+          } catch (error) {
+            console.error("Streaming error:", error);
+            const errorLine = `e:${JSON.stringify({ type: "error", error: error instanceof Error ? error.message : "Unknown error" })}\n`;
+            controller.enqueue(encoder.encode(errorLine));
+            controller.close();
           }
-          // Send finish event
-          controller.enqueue(encoder.encode(`d:{"type":"finish"}\n`));
-          controller.close();
-        } catch (error) {
-          console.error("Streaming error:", error);
-          const errorLine = `e:${JSON.stringify({ type: "error", error: error instanceof Error ? error.message : "Unknown error" })}\n`;
-          controller.enqueue(encoder.encode(errorLine));
-          controller.close();
-        }
-      },
-    });
+        },
+      });
 
-    return new Response(stream, {
-      headers: {
-        "Content-Type": "text/plain; charset=utf-8",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive",
-      },
-    });
+      return new Response(stream, {
+        headers: {
+          "Content-Type": "text/plain; charset=utf-8",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
+        },
+      });
+    } finally {
+      // Restore original API key
+      if (originalApiKey !== undefined) {
+        process.env.GOOGLE_API_KEY = originalApiKey;
+      } else {
+        delete process.env.GOOGLE_API_KEY;
+      }
+    }
   } catch (error) {
     console.error("Error in AI command:", error);
     return NextResponse.json(

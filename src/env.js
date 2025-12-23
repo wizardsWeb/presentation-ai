@@ -25,8 +25,8 @@ export const env = createEnv({
     BHASHINI_PIPELINE_ID: z.string().optional(),
 
     NEXTAUTH_URL: z.preprocess(
-      (str) => process.env.VERCEL_URL ?? str,
-      process.env.VERCEL ? z.string() : z.string().url()
+      (str) => process.env.VERCEL_URL ?? str ?? 'http://localhost:3000',
+      process.env.VERCEL || process.env.ELECTRON ? z.string() : z.string().url()
     ),
     NEXTAUTH_SECRET:
       process.env.NODE_ENV === "production"

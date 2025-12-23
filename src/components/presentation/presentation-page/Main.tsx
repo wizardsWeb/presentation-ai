@@ -111,11 +111,6 @@ export default function PresentationPage() {
       };
 
       const loadedSlides = presentationContent?.slides ?? [];
-      // #region agent log
-      const firstSlide = loadedSlides[0];
-      const firstElement = firstSlide?.content?.[0] as any;
-      fetch('http://127.0.0.1:7242/ingest/255e23dc-8bb2-49a0-9f55-4824de3b4341',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Main.tsx:126',message:'Loaded slides from database',data:{slideCount:loadedSlides.length,firstElement:JSON.stringify(firstElement),firstElementType:firstElement?.type,firstElementUrl:firstElement?.url?.substring(0,50)??'MISSING'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
       setSlides(loadedSlides);
 
       // Set outline

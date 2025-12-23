@@ -311,3 +311,48 @@ h6.presentation-heading {
 [data-is-presenting="true"] [data-slate-editor="true"] > *:first-child h1.presentation-heading {
   display: none !important;
 }
+
+/* Hide sidebar and slide preview in fullscreen/presentation mode */
+:fullscreen .no-print,
+:-webkit-full-screen .no-print,
+:-moz-full-screen .no-print,
+:-ms-fullscreen .no-print {
+  display: none !important;
+}
+
+/* Ensure slide preview numbers and labels have low z-index and are hidden in fullscreen */
+:fullscreen [class*="SlidePreview"],
+:-webkit-full-screen [class*="SlidePreview"],
+:-moz-full-screen [class*="SlidePreview"],
+:-ms-fullscreen [class*="SlidePreview"] {
+  display: none !important;
+}
+
+[class*="SlidePreview"] [class*="absolute"] {
+  z-index: 0 !important;
+}
+
+/* Hide slide numbers and labels in presentation mode */
+/* Hide numbered squares in bullet items */
+[data-is-presenting="true"] [class*="bullet-item"] > div.flex.items-start > div:first-child,
+[data-is-presenting="true"] .group\/bullet-item > div.flex.items-start > div:first-child {
+  display: none !important;
+}
+
+/* Hide numbered shapes in pyramid items */
+[data-is-presenting="true"] [class*="pyramid-item"] > div.flex.items-center > div:first-child,
+[data-is-presenting="true"] .group\/pyramid-item > div.flex.items-center > div:first-child {
+  display: none !important;
+}
+
+/* Hide numbered circles in cycle items */
+[data-is-presenting="true"] [class*="cycle-item"] > div > div.flex.items-center > div:first-child,
+[data-is-presenting="true"] .group\/cycle-item > div > div.flex.items-center > div:first-child {
+  display: none !important;
+}
+
+/* Hide section type labels/badges in presentation mode */
+[data-is-presenting="true"] [class*="rounded-full"][class*="border"][class*="px-2.5"][class*="py-1"],
+[data-is-presenting="true"] [class*="rounded-full"][class*="border"][class*="px-2"][class*="py-1"] {
+  display: none !important;
+}

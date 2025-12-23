@@ -41,6 +41,35 @@ const getAudienceContent = (audience: AudienceType): string => {
   return audienceMap[audience];
 };
 
+// Map language codes to full language names for better clarity
+const getLanguageName = (langCode: string): string => {
+  const languageMap: Record<string, string> = {
+    "en-US": "English",
+    "en-GB": "English",
+    "en": "English",
+    "hi": "Hindi",
+    "pt": "Portuguese",
+    "es": "Spanish",
+    "fr": "French",
+    "de": "German",
+    "it": "Italian",
+    "ja": "Japanese",
+    "ko": "Korean",
+    "zh": "Chinese",
+    "ru": "Russian",
+    "ar": "Arabic",
+    "nl": "Dutch",
+    "pl": "Polish",
+    "tr": "Turkish",
+    "vi": "Vietnamese",
+    "ta": "Tamil",
+    "te": "Telugu",
+    "mr": "Marathi",
+    "bn": "Bengali",
+  };
+  return languageMap[langCode] ?? langCode;
+};
+
 const slidesTemplate = `
 You are an expert presentation designer.Your task is to create an engaging presentation in XML format.
 ## CORE REQUIREMENTS
@@ -56,6 +85,9 @@ You are an expert presentation designer.Your task is to create an engaging prese
 - Language: {LANGUAGE}
 - Tone: {TONE}
 - Total Slides: {TOTAL_SLIDES}
+
+## LANGUAGE REQUIREMENT
+CRITICAL: Write ALL content in {LANGUAGE} language only. All slide titles, headings, bullet points, paragraphs, and image queries must be in {LANGUAGE}. Do not mix languages.
 
 ## TEACHING APPROACH
 {TEACHING_STYLE_INSTRUCTIONS}
@@ -242,13 +274,16 @@ export async function POST(req: Request) {
     const finalTeachingStyle: TeachingStyle = teachingStyle ?? "concept-first";
     const finalAudienceType: AudienceType = audienceType ?? "professional";
 
+    // Convert language code to language name
+    const languageName = getLanguageName(language);
+
     const prompt = PromptTemplate.fromTemplate(slidesTemplate);
     const stringOutputParser = new StringOutputParser();
     const chain = RunnableSequence.from([prompt, model, stringOutputParser]);
 
     const stream = await chain.stream({
       TITLE: title,
-      LANGUAGE: language,
+      LANGUAGE: languageName,
       TONE: tone,
       OUTLINE_FORMATTED: outline.join("\n\n"),
       TOTAL_SLIDES: outline.length,

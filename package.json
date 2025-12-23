@@ -3,17 +3,25 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "main": "electron/main.js",
   "scripts": {
     "build": "prisma generate && next build",
+    "build:electron": "prisma generate && next build && electron-builder",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "dev": "next dev",
+    "dev:electron": "concurrently \"npm run dev\" \"wait-on http://localhost:3000 && electron .\"",
+    "electron": "electron .",
+    "electron:dev": "NODE_ENV=development electron .",
+    "electron:pack": "electron-builder --dir",
+    "electron:dist": "electron-builder",
     "postinstall": "prisma generate",
     "lint": "next lint",
     "start": "next start",
     "vercel-build": "prisma generate && prisma db push && next build"
   },
   "dependencies": {
+    "@ai-sdk/google": "^2.0.51",
     "@ai-sdk/openai": "^1.1.5",
     "@ai-sdk/react": "^0.0.6",
     "@ariakit/react": "^0.4.15",
@@ -180,6 +188,10 @@
     "@types/webpack": "^5.28.5",
     "@typescript-eslint/eslint-plugin": "^7.18.0",
     "@typescript-eslint/parser": "^7.18.0",
+    "concurrently": "^9.1.0",
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8",
+    "electron-squirrel-startup": "^1.0.1",
     "eslint": "^8.57.1",
     "eslint-config-next": "^14.2.23",
     "postcss": "^8.5.1",
@@ -192,6 +204,7 @@
     "tailwindcss-scrollbar": "^0.1.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.3",
+    "wait-on": "^8.0.1",
     "webpack": "^5.97.1"
   }
 }
