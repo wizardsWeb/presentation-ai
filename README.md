@@ -1,4 +1,4 @@
-# 🎯 Presentation AI
+# 🎯 Presentation AI,
 
 > **AI-powered presentation builder with agentic architecture, offline models, and multilingual support for Indian languages.**
 
