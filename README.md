@@ -1,4 +1,4 @@
-# 🎯 Presentation AI
+# 🎯 Presentation AI,
 
 > **AI-powered presentation builder that creates stunning, professional slides in seconds.**
 
