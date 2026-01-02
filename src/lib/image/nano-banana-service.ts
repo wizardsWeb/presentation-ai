@@ -147,14 +147,14 @@ The slide should be a complete, self-contained image that looks exactly like a p
  */
 export async function generateSlideImageWithNanoBanana(
   prompt: string,
-  options?: {
+  _options?: {
     width?: number;
     height?: number;
     style?: string;
   }
 ): Promise<{ success: boolean; url?: string; error?: string; buffer?: Buffer }> {
   // Use GOOGLE_AI_PRO_KEY for nano banana generation (PRIORITY)
-  const apiKey = env.GOOGLE_AI_PRO_KEY || env.NANO_BANANA_API_KEY || env.GOOGLE_API_KEY;
+  const apiKey = env.GOOGLE_AI_PRO_KEY ?? env.NANO_BANANA_API_KEY ?? env.GOOGLE_API_KEY;
 
   if (!apiKey) {
     console.error("[Nano Banana] API key not found. Checked: GOOGLE_AI_PRO_KEY, NANO_BANANA_API_KEY, GOOGLE_API_KEY");
@@ -174,61 +174,140 @@ export async function generateSlideImageWithNanoBanana(
     // Initialize Google Generative AI
     const genAI = new GoogleGenerativeAI(apiKey);
 
-    // Use "gemini-2.5-flash-image" for Nano Banana
-    const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash-image",
-    });
+    // Try multiple model names - Google's image generation models may vary
+    // Note: Gemini models that support image generation may have different names
+    const possibleModels = [
+      "gemini-2.0-flash-exp",  // Experimental flash model
+      "gemini-2.0-flash-thinking-exp",  // Thinking variant
+      "gemini-1.5-flash",  // Fallback to flash
+      "gemini-1.5-pro",  // Pro variant
+    ];
 
-    // Generate content with the prompt
-    // Single attempt only (no retries for speed)
-    console.log(`[Nano Banana] Generating image with prompt length: ${prompt.length} characters`);
-    
     let result;
-    try {
-      result = await model.generateContent(prompt);
-      console.log(`[Nano Banana] API call successful!`);
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      const errorCode = (error as { code?: number })?.code;
-      
-      console.error(`[Nano Banana] API error:`, errorMessage);
-      
-      // Check if it's a rate limit error (429) or quota error
-      const isRateLimit = 
-        errorCode === 429 ||
-        errorMessage.includes("429") || 
-        errorMessage.includes("RESOURCE_EXHAUSTED") || 
-        errorMessage.includes("quota") ||
-        errorMessage.includes("rate limit") ||
-        errorMessage.includes("Rate limit");
-      
-      if (isRateLimit) {
-        return {
-          success: false,
-          error: "Rate limit exceeded. Please wait a few minutes and try again, or check your Google AI API quota.",
-        };
+    let lastError: Error | null = null;
+
+    // Try each model until one works
+    for (const modelName of possibleModels) {
+      try {
+        console.log(`[Nano Banana] Trying model: ${modelName}`);
+        const model = genAI.getGenerativeModel({
+          model: modelName,
+        });
+
+        // Generate content with the prompt
+        console.log(`[Nano Banana] Generating image with prompt length: ${prompt.length} characters`);
+        
+        result = await model.generateContent(prompt);
+        console.log(`[Nano Banana] API call successful with model: ${modelName}!`);
+        break;
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorCode = (error as { code?: number })?.code;
+        
+        console.warn(`[Nano Banana] Model ${modelName} failed:`, errorMessage);
+        lastError = error instanceof Error ? error : new Error(String(error));
+        
+        // Check if it's a model not found error (404) - try next model
+        const isModelNotFound = 
+          errorCode === 404 ||
+          errorMessage.includes("404") ||
+          errorMessage.includes("not found") ||
+          errorMessage.includes("MODEL_NOT_FOUND");
+        
+        if (isModelNotFound) {
+          console.log(`[Nano Banana] Model ${modelName} not found, trying next...`);
+          continue; // Try next model
+        }
+        
+        // Check if it's a rate limit error (429) or quota error
+        const isRateLimit = 
+          errorCode === 429 ||
+          errorMessage.includes("429") || 
+          errorMessage.includes("RESOURCE_EXHAUSTED") || 
+          errorMessage.includes("quota") ||
+          errorMessage.includes("rate limit") ||
+          errorMessage.includes("Rate limit");
+        
+        if (isRateLimit) {
+          return {
+            success: false,
+            error: "Rate limit exceeded. Please wait a few minutes and try again, or check your Google AI API quota.",
+          };
+        }
+        
+        // For other errors, continue to next model
+        continue;
       }
-      
-      // For any other error, throw immediately
-      throw error;
     }
-    
+
+    // If all models failed, return error
     if (!result) {
-      throw new Error("Failed to generate content");
+      const errorMessage = lastError?.message ?? "All models failed";
+      console.error(`[Nano Banana] All models failed. Last error:`, errorMessage);
+      return {
+        success: false,
+        error: `Image generation failed: ${errorMessage}. Please check your API key has access to image generation models. Note: Gemini models may not support direct image generation.`,
+      };
     }
     
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const response = await result.response;
+
+    // Log response structure for debugging
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument
+    const responseText = response.text();
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const candidates = (response.candidates ?? []) as unknown[];
+    console.log(`[Nano Banana] Response structure:`, {
+      hasCandidates: candidates.length > 0,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      candidatesCount: candidates.length,
+      responseText: typeof responseText === 'string' ? responseText.substring(0, 200) : "No text",
+    });
 
     // Extract base64 image data from response
     let imageBuffer: Buffer | null = null;
 
-    for (const candidate of response.candidates || []) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    for (const candidate of candidates) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       if (candidate.content?.parts) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        console.log(`[Nano Banana] Found ${candidate.content.parts.length} parts in candidate`);
+        
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         for (const part of candidate.content.parts) {
+          // Log part structure for debugging
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/prefer-optional-chain
+          const hasInlineData = part.inlineData && part.inlineData.data;
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          const hasText = !!part.text;
+          console.log(`[Nano Banana] Part type:`, {
+            hasInlineData: !!hasInlineData,
+            hasText,
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+            partKeys: Object.keys(part),
+          });
+
           // Check if part contains inline image data (base64)
-          if (part.inlineData && part.inlineData.data) {
-            const imageData = part.inlineData.data;
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/prefer-optional-chain
+          if (part.inlineData?.data) {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument
+            const imageData = part.inlineData.data as string;
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            console.log(`[Nano Banana] Found image data, length: ${typeof imageData === 'string' ? imageData.length : 'unknown'}`);
             imageBuffer = Buffer.from(imageData, "base64");
+            break;
+          }
+          
+          // Alternative: Check for image in different response formats
+          // Some Gemini models return images differently
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+          const partAny = part as Record<string, unknown>;
+          const altImageData = partAny.imageData ?? partAny.image;
+          if (typeof altImageData === 'string') {
+            console.log(`[Nano Banana] Found alternative image data format`);
+            imageBuffer = Buffer.from(altImageData, "base64");
             break;
           }
         }
@@ -237,37 +316,50 @@ export async function generateSlideImageWithNanoBanana(
     }
 
     if (!imageBuffer) {
+      // Log full response for debugging
+      console.error(`[Nano Banana] No image data found. Full response:`, JSON.stringify(response, null, 2).substring(0, 1000));
       return {
         success: false,
-        error: "No image data found in response",
+        error: "No image data found in response. The model may not support image generation, or the response format is unexpected.",
       };
     }
 
     // Upload to UploadThing for permanent storage
-    const filename = `slide_${Date.now()}_${Math.random().toString(36).substring(7)}.png`;
-    // Convert Buffer to Uint8Array for UTFile
-    const uint8Array = new Uint8Array(imageBuffer);
-    const utFile = new UTFile([uint8Array], filename);
+    try {
+      const filename = `slide_${Date.now()}_${Math.random().toString(36).substring(7)}.png`;
+      // Convert Buffer to Uint8Array for UTFile
+      const uint8Array = new Uint8Array(imageBuffer);
+      const utFile = new UTFile([uint8Array], filename);
 
-    const uploadResult = await utapi.uploadFiles([utFile]);
+      console.log(`[Nano Banana] Uploading image to UploadThing, size: ${imageBuffer.length} bytes`);
+      const uploadResult = await utapi.uploadFiles([utFile]);
 
-    const uploadData = uploadResult[0];
-    if (!uploadData?.data?.ufsUrl) {
-      console.error("UploadThing error:", uploadData?.error);
+      const uploadData = uploadResult[0];
+      if (!uploadData?.data?.ufsUrl) {
+        console.error("[Nano Banana] UploadThing error:", uploadData?.error);
+        console.error("[Nano Banana] UploadThing response:", JSON.stringify(uploadData, null, 2));
+        return {
+          success: false,
+          error: uploadData?.error?.message ?? "Failed to upload image to UploadThing. Please check UPLOADTHING_SECRET and UPLOADTHING_APP_ID environment variables.",
+          buffer: imageBuffer, // Return buffer as fallback
+        };
+      }
+
+      const permanentUrl = uploadData.data.ufsUrl;
+      console.log(`[Nano Banana] Image uploaded successfully to UploadThing: ${permanentUrl}`);
+
+      return {
+        success: true,
+        url: permanentUrl,
+      };
+    } catch (uploadError) {
+      console.error("[Nano Banana] UploadThing upload failed:", uploadError);
       return {
         success: false,
-        error: uploadData?.error?.message || "Failed to upload image to UploadThing",
+        error: `Upload failed: ${uploadError instanceof Error ? uploadError.message : String(uploadError)}. Please check UploadThing configuration.`,
         buffer: imageBuffer, // Return buffer as fallback
       };
     }
-
-    const permanentUrl = uploadData.data.ufsUrl;
-    console.log(`Nano Banana image uploaded to UploadThing: ${permanentUrl}`);
-
-    return {
-      success: true,
-      url: permanentUrl,
-    };
   } catch (error) {
     console.error("Nano banana generation error:", error);
     return {

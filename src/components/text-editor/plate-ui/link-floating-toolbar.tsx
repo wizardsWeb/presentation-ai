@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import React from 'react';
 
@@ -142,18 +143,20 @@ export function LinkFloatingToolbar({ state }: LinkFloatingToolbarProps) {
 
   return (
     <>
+      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
       <div
         ref={insertRef}
         className={cn(popoverVariants(), 'w-auto p-1')}
-        {...insertProps}
+        {...(insertProps as any)}
       >
         {input}
       </div>
 
+      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
       <div
         ref={editRef}
         className={cn(popoverVariants(), 'w-auto p-1')}
-        {...editProps}
+        {...(editProps as any)}
       >
         {editContent}
       </div>

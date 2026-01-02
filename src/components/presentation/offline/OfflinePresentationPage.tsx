@@ -7,15 +7,13 @@ import {
   type Themes,
   themes,
   setThemeVariables,
-  type ThemeProperties,
 } from "@/lib/presentation/themes";
 import { useTheme } from "next-themes";
-import debounce from "lodash.debounce";
 import { PresentationSlidesView } from "@/components/presentation/presentation-page/PresentationSlidesView";
 import { PresentationLayout } from "@/components/presentation/presentation-page/PresentationLayout";
 import { PresenterNotes } from "@/components/presentation/presentation-page/PresenterNotes";
 import PresentationHeader from "@/components/presentation/presentation-page/PresentationHeader";
-import { type Value, type TElement } from "@udecode/plate-common";
+import { type TElement } from "@udecode/plate-common";
 import { type PlateSlide } from "@/components/presentation/utils/parser";
 
 export default function OfflinePresentationPage() {
@@ -24,8 +22,6 @@ export default function OfflinePresentationPage() {
   const { resolvedTheme } = useTheme();
   const {
     setCurrentPresentation,
-    setPresentationInput,
-    setOutline,
     setSlides,
     isGeneratingPresentation,
     setTheme,
@@ -37,11 +33,11 @@ export default function OfflinePresentationPage() {
 
   // Initialize presentation from state (no database fetch)
   useEffect(() => {
-    if (id && id.startsWith("offline-")) {
+    if (id?.startsWith("offline-")) {
       // Presentation data is already in state from the generator
       // Just ensure the ID is set
       if (currentPresentationId !== id) {
-        const title = currentPresentationTitle || "Untitled Presentation";
+        const title = currentPresentationTitle ?? "Untitled Presentation";
         setCurrentPresentation(id, title);
       }
     }
@@ -80,7 +76,7 @@ export default function OfflinePresentationPage() {
     if (theme) {
       const themeData = themes[theme as Themes];
       if (themeData) {
-        setThemeVariables(themeData);
+        setThemeVariables(themeData, resolvedTheme === "dark");
       }
     }
   }, [theme, resolvedTheme]);

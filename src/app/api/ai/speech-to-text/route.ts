@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { 
   speechToText, 
   type LanguageCode 
@@ -37,7 +38,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const text = await speechToText(audio, language as LanguageCode);
+    const text = await speechToText(audio as string, language as LanguageCode);
 
     return NextResponse.json({ 
       success: true,

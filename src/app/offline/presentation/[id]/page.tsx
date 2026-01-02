@@ -23,7 +23,7 @@ export default function OfflinePresentationPage() {
 
   useEffect(() => {
     // Set the presentation ID from URL
-    if (id && id.startsWith("offline-")) {
+    if (id?.startsWith("offline-")) {
       const title = presentationInput || "Untitled Presentation";
       setCurrentPresentation(id, title);
     }
@@ -37,8 +37,7 @@ export default function OfflinePresentationPage() {
     }
 
     if (
-      presentationInput &&
-      presentationInput.trim() &&
+      presentationInput?.trim() &&
       !hasStartedGeneration &&
       !isGeneratingPresentation &&
       slides.length === 0

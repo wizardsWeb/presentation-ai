@@ -94,7 +94,7 @@ Rules:
     }
 
     // Extract JSON from markdown code blocks if present
-    const jsonMatch = jsonText.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/) || 
+    const jsonMatch = jsonText.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/) ?? 
                       jsonText.match(/(\{[\s\S]*\})/);
     
     const jsonStr = jsonMatch?.[1] ?? jsonText;

@@ -62,6 +62,9 @@ async function testRoute() {
         console.log('✅ Connected! Streaming response...\n');
         console.log('-'.repeat(60));
 
+        if (!response.body) {
+          throw new Error('Response body is null');
+        }
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let buffer = '';
@@ -175,9 +178,10 @@ async function testRoute() {
         }
 
     } catch (error) {
-        console.error('\n❌ Request failed:', error.message);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error('\n❌ Request failed:', errorMessage);
 
-        if (error.message.includes('ECONNREFUSED')) {
+        if (errorMessage.includes('ECONNREFUSED')) {
             console.error('\n💡 Make sure your Next.js dev server is running:');
             console.error('   npm run dev');
             console.error('   Server should be on: http://localhost:3000');

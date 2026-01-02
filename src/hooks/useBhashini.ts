@@ -60,11 +60,11 @@ export function useBhashini(options: UseBhashiniOptions = {}) {
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to transcribe audio");
+        const data: { error?: string } = await response.json() as { error?: string };
+        throw new Error(data.error ?? "Failed to transcribe audio");
       }
 
-      const data = await response.json();
+      const data: { text: string } = await response.json() as { text: string };
       return { text: data.text, language };
     } catch (err) {
       handleError(err instanceof Error ? err.message : "Speech recognition failed");
@@ -93,11 +93,11 @@ export function useBhashini(options: UseBhashiniOptions = {}) {
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to generate speech");
+        const data: { error?: string } = await response.json() as { error?: string };
+        throw new Error(data.error ?? "Failed to generate speech");
       }
 
-      const data = await response.json();
+      const data: { audio: string } = await response.json() as { audio: string };
       return { audio: data.audio, language };
     } catch (err) {
       handleError(err instanceof Error ? err.message : "Speech synthesis failed");
@@ -126,11 +126,11 @@ export function useBhashini(options: UseBhashiniOptions = {}) {
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to translate");
+        const data: { error?: string } = await response.json() as { error?: string };
+        throw new Error(data.error ?? "Failed to translate");
       }
 
-      const data = await response.json();
+      const data: { translation: string } = await response.json() as { translation: string };
       return { 
         translation: data.translation, 
         sourceLanguage, 
@@ -162,7 +162,7 @@ export function useBhashini(options: UseBhashiniOptions = {}) {
           URL.revokeObjectURL(audioUrl);
           reject(new Error("Failed to play audio"));
         };
-        audio.play();
+        void audio.play();
       });
     } catch (err) {
       handleError("Failed to play audio");
@@ -174,7 +174,7 @@ export function useBhashini(options: UseBhashiniOptions = {}) {
    * Record audio from microphone and get base64
    */
   const recordAudio = useCallback(async (
-    durationMs: number = 5000
+    durationMs = 5000
   ): Promise<string | null> => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -253,7 +253,7 @@ async function blobToBase64(blob: Blob): Promise<string> {
     const reader = new FileReader();
     reader.onloadend = () => {
       const result = reader.result as string;
-      const base64 = result.split(",")[1] || "";
+      const base64 = result.split(",")[1] ?? "";
       resolve(base64);
     };
     reader.onerror = reject;

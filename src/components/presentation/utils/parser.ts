@@ -1440,7 +1440,7 @@ export class SlideParser {
     // If URL is empty, try to extract from originalTagContent
     if (!url && node.originalTagContent) {
       const urlMatch = node.originalTagContent.match(/url=["']([^"']+)["']/);
-      if (urlMatch && urlMatch[1]) {
+      if (urlMatch?.[1]) {
         url = urlMatch[1];
       }
     }

@@ -8,7 +8,7 @@ export async function retryDbOperation<T>(
   maxRetries = 3,
   delay = 1000
 ): Promise<T> {
-  let lastError: Error | unknown;
+  let lastError: unknown;
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {

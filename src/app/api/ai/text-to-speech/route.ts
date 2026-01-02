@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
     }
 
     const audioBase64 = await textToSpeech(
-      text, 
+      text as string, 
       language as LanguageCode,
       gender as "male" | "female"
     );

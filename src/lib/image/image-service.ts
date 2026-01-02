@@ -736,7 +736,7 @@ function getFallbackChain(primary: ImageProvider): ImageProvider[] {
     "flux-dev": ["flux-dev", "flux-schnell", "pollinations", "unsplash"],
   };
   
-  return chains[primary as Exclude<ImageProvider, "nano-banana">] ?? ["unsplash", "pollinations"];
+  return chains[primary] ?? ["unsplash", "pollinations"];
 }
 
 /**

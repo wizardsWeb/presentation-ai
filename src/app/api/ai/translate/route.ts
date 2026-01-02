@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
     }
 
     const translation = await translateText(
-      text,
+      text as string,
       sourceLanguage as LanguageCode,
       targetLanguage as LanguageCode
     );

@@ -59,7 +59,8 @@ export function AIMenu() {
   };
 
   useEditorChat({
-    chat,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    chat: chat as any, // Type assertion to handle version mismatch
     onOpenBlockSelection: (blocks: TNodeEntry[]) => {
       show(toDOMNode(editor, blocks.at(-1)![0])!);
     },

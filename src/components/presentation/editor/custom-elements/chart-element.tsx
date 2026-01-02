@@ -217,8 +217,10 @@ const ChartComponent = withRef<typeof PlateElement>(
 
 export const ChartPlugin = createPlatePlugin({
   key: CHART_ELEMENT,
-  isElement: true,
-  isVoid: true,
-  component: ChartComponent,
+  node: {
+    isElement: true,
+    isVoid: true,
+    component: ChartComponent,
+  },
 });
 

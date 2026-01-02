@@ -38,7 +38,13 @@ if (typeof process !== "undefined") {
     await db.$disconnect();
   };
   
-  process.on("beforeExit", gracefulShutdown);
-  process.on("SIGINT", gracefulShutdown);
-  process.on("SIGTERM", gracefulShutdown);
+  process.on("beforeExit", () => {
+    void gracefulShutdown();
+  });
+  process.on("SIGINT", () => {
+    void gracefulShutdown();
+  });
+  process.on("SIGTERM", () => {
+    void gracefulShutdown();
+  });
 }

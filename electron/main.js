@@ -149,26 +149,33 @@ function startNextServer() {
 function waitForServer(callback, maxAttempts = 120) {
   const http = require('http');
   let attempts = 0;
+  let serverReady = false; // Track if we've already called the callback
 
   console.log(`Waiting for Next.js server on http://localhost:${serverPort}...`);
 
   const checkServer = () => {
+    // Don't check if already ready
+    if (serverReady) return;
+    
     attempts++;
     if (attempts > 1 && attempts % 10 === 0) {
       console.log(`Still waiting for server... (attempt ${attempts}/${maxAttempts})`);
     }
 
     const req = http.get(`http://localhost:${serverPort}`, (res) => {
-      // Any response means the server is up
-      console.log(`Server is ready! (status: ${res.statusCode})`);
-      callback();
+      // Any response means the server is up - but only call callback once
+      if (!serverReady) {
+        serverReady = true;
+        console.log(`Server is ready! (status: ${res.statusCode})`);
+        callback();
+      }
     });
 
     req.on('error', (err) => {
-      if (attempts < maxAttempts) {
+      if (!serverReady && attempts < maxAttempts) {
         // Retry after a short delay
         setTimeout(checkServer, 500);
-      } else {
+      } else if (!serverReady) {
         console.error(`Next.js server failed to start after ${maxAttempts} attempts:`, err.message);
         console.error('Make sure the Next.js server is running on port', serverPort);
         // Don't quit - let the user see the error
@@ -179,9 +186,9 @@ function waitForServer(callback, maxAttempts = 120) {
     // Increase timeout to 5 seconds
     req.setTimeout(5000, () => {
       req.destroy();
-      if (attempts < maxAttempts) {
+      if (!serverReady && attempts < maxAttempts) {
         setTimeout(checkServer, 500);
-      } else {
+      } else if (!serverReady) {
         console.error(`Next.js server connection timeout after ${maxAttempts} attempts`);
         console.error('The server may still be starting. Check the terminal for Next.js output.');
         // Don't quit - let the user see what's happening

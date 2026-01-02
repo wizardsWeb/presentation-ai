@@ -26,7 +26,7 @@ export async function POST(req: Request) {
 
     // Check for Gemini API key - try multiple sources
     // Also check process.env directly since env.GOOGLE_API_KEY is optional
-    const rawKey = env.GOOGLE_API_KEY || process.env.GOOGLE_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+    const rawKey = env.GOOGLE_API_KEY ?? process.env.GOOGLE_API_KEY ?? process.env.GOOGLE_GENERATIVE_AI_API_KEY;
     if (!rawKey) {
       console.error("GOOGLE_API_KEY is missing. Please set GOOGLE_API_KEY or GOOGLE_GENERATIVE_AI_API_KEY environment variable.");
       console.error("env.GOOGLE_API_KEY:", env.GOOGLE_API_KEY ? "exists" : "missing");
@@ -83,6 +83,7 @@ export async function POST(req: Request) {
     
     try {
       const result = streamText({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         model: google("gemini-2.5-flash") as any, // Type assertion to handle v1/v2 compatibility
         system: systemPrompt,
         messages: chatMessages,

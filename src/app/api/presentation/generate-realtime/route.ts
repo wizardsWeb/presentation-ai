@@ -4,7 +4,7 @@ import { ChatOpenAI } from "@langchain/openai";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { RunnableSequence } from "@langchain/core/runnables";
 import { StringOutputParser } from "@langchain/core/output_parsers";
-import { generateFullSlideImage, generateSlideImagePrompt } from "@/lib/image/nano-banana-service";
+import { generateFullSlideImage } from "@/lib/image/nano-banana-service";
 
 /**
  * Real-time streaming endpoint for Quick Mode
@@ -113,7 +113,7 @@ async function generateFullSlideImageRealtime(
     });
 
     if (!result.success || !result.url) {
-      throw new Error(result.error || "Failed to generate slide image");
+      throw new Error(result.error ?? "Failed to generate slide image");
     }
 
     // Create XML structure for full slide image - NO TEXT, just the image
@@ -236,6 +236,7 @@ export async function POST(req: Request) {
                 language,
                 tone,
                 state,
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
                 writer,
                 encoder
               );

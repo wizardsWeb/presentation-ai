@@ -5,8 +5,10 @@ import { FullSlideImageElement } from "./full-slide-image-element";
 
 export const FullSlideImagePlugin = createPlatePlugin({
   key: "full-slide-image",
-  isElement: true,
-  isVoid: true,
-  component: FullSlideImageElement,
+  node: {
+    isElement: true,
+    isVoid: true,
+    component: FullSlideImageElement,
+  },
 });
 

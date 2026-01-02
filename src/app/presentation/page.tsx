@@ -325,6 +325,16 @@ export default function PresentationPage() {
             </div>
           </div>
 
+          <div>
+            <Button 
+              variant="outline"
+              onClick={() => router.push("/offline/presentation")}
+              className="gap-2 border-[#555555] bg-[#101010] px-6 py-3 text-base font-medium text-white hover:bg-[#3C3C3C] hover:border-[#666666]"
+            >
+              Offline
+            </Button>
+          </div>
+
           {/* Action Buttons */}
           <div className="flex items-center gap-4">
           <Button

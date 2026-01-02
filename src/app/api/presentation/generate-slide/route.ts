@@ -163,7 +163,7 @@ export async function POST(req: Request) {
 
       if (!result.success || !result.url) {
         return NextResponse.json(
-          { error: result.error || "Failed to generate slide image" },
+          { error: result.error ?? "Failed to generate slide image" },
           { status: 500 },
         );
       }

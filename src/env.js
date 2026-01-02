@@ -26,6 +26,7 @@ export const env = createEnv({
 
     NEXTAUTH_URL: z.preprocess(
       (str) => process.env.VERCEL_URL ?? str ?? 'http://localhost:3000',
+      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
       process.env.VERCEL || process.env.ELECTRON ? z.string() : z.string().url()
     ),
     NEXTAUTH_SECRET:

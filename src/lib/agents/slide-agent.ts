@@ -14,7 +14,7 @@ import {
   type TeachingStyle, 
   type AudienceType 
 } from "@/states/presentation-state";
-import { generateFullSlideImage, generateSlideImagePrompt } from "@/lib/image/nano-banana-service";
+import { generateFullSlideImage } from "@/lib/image/nano-banana-service";
 
 /**
  * Slide Generation Agent
@@ -349,18 +349,6 @@ async function generateFullSlideImageWithNanoBanana(
   try {
     emit({ type: "generating", message: "Generating full slide image..." });
 
-    // Generate the slide image prompt
-    const imagePrompt = generateSlideImagePrompt({
-      slideTopic: topic,
-      slideNumber: index + 1,
-      totalSlides: total,
-      language,
-      tone,
-      teachingStyle: pedagogy.teachingStyle,
-      audienceType: pedagogy.audienceType,
-      researchContext: prefetchedResearch,
-    });
-
     // Generate the full slide image
     console.log(`[Nano Banana] Generating slide ${index + 1} for topic: ${topic}`);
     const result = await generateFullSlideImage({
@@ -377,7 +365,7 @@ async function generateFullSlideImageWithNanoBanana(
     console.log(`[Nano Banana] Generation result:`, { success: result.success, hasUrl: !!result.url, error: result.error });
 
     if (!result.success || !result.url) {
-      const errorMsg = result.error || "Failed to generate slide image";
+      const errorMsg = result.error ?? "Failed to generate slide image";
       console.error(`[Nano Banana] Generation failed:`, errorMsg);
       emit({ type: "error", message: errorMsg });
       return {
